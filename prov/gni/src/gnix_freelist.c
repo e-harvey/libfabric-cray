@@ -209,4 +209,3 @@ void _gnix_sfe_free(struct slist_entry *e, struct gnix_s_freelist *fl)
 	if (fl->ts)
 		fastlock_release(&fl->lock);
 }
-

@@ -2105,4 +2105,3 @@ int _gnix_vc_cm_init(struct gnix_cm_nic *cm_nic)
 
 	return ret;
 }
-

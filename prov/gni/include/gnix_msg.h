@@ -42,4 +42,3 @@ ssize_t _gnix_send(struct gnix_fid_ep *ep, uint64_t loc_addr, size_t len,
 		   uint64_t flags, uint64_t data, uint64_t tag);
 
 #endif /* _GNIX_MSG_H_ */
-

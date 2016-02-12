@@ -256,60 +256,70 @@ static inline ssize_t __ep_senddata(struct fid_ep *ep, const void *buf,
  * EP messaging API function implementations.
  ******************************************************************************/
 
-static ssize_t gnix_ep_recv(struct fid_ep *ep, void *buf, size_t len,
-			    void *desc, fi_addr_t src_addr, void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_recv(struct fid_ep *ep, void *buf, size_t len,
+				      void *desc, fi_addr_t src_addr,
+				      void *context)
 {
 	return __ep_recv(ep, buf, len, desc, src_addr, context, 0, 0, 0);
 }
 
-static ssize_t gnix_ep_recvv(struct fid_ep *ep, const struct iovec *iov,
-			     void **desc, size_t count, fi_addr_t src_addr,
-			     void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_recvv(struct fid_ep *ep,
+				       const struct iovec *iov,
+				       void **desc, size_t count,
+				       fi_addr_t src_addr,
+				       void *context)
 {
 	return __ep_recvv(ep, iov, desc, count, src_addr, context, 0, 0, 0);
 }
 
-static ssize_t gnix_ep_recvmsg(struct fid_ep *ep, const struct fi_msg *msg,
-			       uint64_t flags)
+DIRECT_FN STATIC ssize_t gnix_ep_recvmsg(struct fid_ep *ep,
+					 const struct fi_msg *msg,
+					 uint64_t flags)
 {
 	return __ep_recvmsg(ep, msg, flags & GNIX_RECVMSG_FLAGS, 0, 0);
 }
 
-ssize_t gnix_ep_send(struct fid_ep *ep, const void *buf, size_t len,
-		     void *desc, fi_addr_t dest_addr, void *context)
+DIRECT_FN ssize_t gnix_ep_send(struct fid_ep *ep, const void *buf, size_t len,
+			       void *desc, fi_addr_t dest_addr, void *context)
 {
 	return __ep_send(ep, buf, len, desc, dest_addr, context, 0, 0);
 }
 
-static ssize_t gnix_ep_sendv(struct fid_ep *ep, const struct iovec *iov,
-			     void **desc, size_t count, fi_addr_t dest_addr,
-			     void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_sendv(struct fid_ep *ep,
+				       const struct iovec *iov,
+				       void **desc, size_t count,
+				       fi_addr_t dest_addr,
+				       void *context)
 {
 	return __ep_sendv(ep, iov, desc, count, dest_addr, context, 0, 0);
 }
 
-static ssize_t gnix_ep_sendmsg(struct fid_ep *ep, const struct fi_msg *msg,
-			uint64_t flags)
+DIRECT_FN STATIC ssize_t gnix_ep_sendmsg(struct fid_ep *ep,
+					 const struct fi_msg *msg,
+					 uint64_t flags)
 {
 	return __ep_sendmsg(ep, msg, flags & GNIX_SENDMSG_FLAGS, 0);
 }
 
-static ssize_t gnix_ep_msg_inject(struct fid_ep *ep, const void *buf,
-				  size_t len, fi_addr_t dest_addr)
+DIRECT_FN STATIC ssize_t gnix_ep_msg_inject(struct fid_ep *ep, const void *buf,
+					    size_t len, fi_addr_t dest_addr)
 {
 	return __ep_inject(ep, buf, len, dest_addr, 0, 0);
 }
 
-ssize_t gnix_ep_senddata(struct fid_ep *ep, const void *buf, size_t len,
-			 void *desc, uint64_t data, fi_addr_t dest_addr,
-			 void *context)
+DIRECT_FN ssize_t gnix_ep_senddata(struct fid_ep *ep, const void *buf,
+				   size_t len,
+				   void *desc, uint64_t data,
+				   fi_addr_t dest_addr,
+				   void *context)
 {
 	return __ep_senddata(ep, buf, len, desc, data, dest_addr,
-			context, 0, 0);
+			     context, 0, 0);
 }
 
-ssize_t gnix_ep_msg_injectdata(struct fid_ep *ep, const void *buf, size_t len,
-			       uint64_t data, fi_addr_t dest_addr)
+DIRECT_FN ssize_t gnix_ep_msg_injectdata(struct fid_ep *ep, const void *buf,
+					 size_t len, uint64_t data,
+					 fi_addr_t dest_addr)
 {
 	struct gnix_fid_ep *gnix_ep;
 	uint64_t flags;
@@ -322,7 +332,7 @@ ssize_t gnix_ep_msg_injectdata(struct fid_ep *ep, const void *buf, size_t len,
 	assert((gnix_ep->type == FI_EP_RDM) || (gnix_ep->type == FI_EP_MSG));
 
 	flags = gnix_ep->op_flags | FI_INJECT | FI_REMOTE_CQ_DATA |
-			GNIX_SUPPRESS_COMPLETION;
+		GNIX_SUPPRESS_COMPLETION;
 
 	return _gnix_send(gnix_ep, (uint64_t)buf, len, NULL, dest_addr,
 			  NULL, flags, data, 0);
@@ -336,9 +346,9 @@ ssize_t gnix_ep_msg_injectdata(struct fid_ep *ep, const void *buf, size_t len,
 #define GNIX_RMA_READ_FLAGS_DEF		(FI_RMA | FI_READ)
 #define GNIX_RMA_WRITE_FLAGS_DEF	(FI_RMA | FI_WRITE)
 
-static ssize_t gnix_ep_read(struct fid_ep *ep, void *buf, size_t len,
-			    void *desc, fi_addr_t src_addr, uint64_t addr,
-			    uint64_t key, void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_read(struct fid_ep *ep, void *buf, size_t len,
+				      void *desc, fi_addr_t src_addr, uint64_t addr,
+				      uint64_t key, void *context)
 {
 	struct gnix_fid_ep *gnix_ep;
 	uint64_t flags;
@@ -358,7 +368,7 @@ static ssize_t gnix_ep_read(struct fid_ep *ep, void *buf, size_t len,
 			 context, flags, 0);
 }
 
-static ssize_t gnix_ep_readv(struct fid_ep *ep, const struct iovec *iov,
+DIRECT_FN STATIC ssize_t gnix_ep_readv(struct fid_ep *ep, const struct iovec *iov,
 			     void **desc, size_t count, fi_addr_t src_addr,
 			     uint64_t addr, uint64_t key, void *context)
 {
@@ -380,7 +390,7 @@ static ssize_t gnix_ep_readv(struct fid_ep *ep, const struct iovec *iov,
 			 context, flags, 0);
 }
 
-static ssize_t gnix_ep_readmsg(struct fid_ep *ep, const struct fi_msg_rma *msg,
+DIRECT_FN STATIC ssize_t gnix_ep_readmsg(struct fid_ep *ep, const struct fi_msg_rma *msg,
 			       uint64_t flags)
 {
 	struct gnix_fid_ep *gnix_ep;
@@ -403,7 +413,7 @@ static ssize_t gnix_ep_readmsg(struct fid_ep *ep, const struct fi_msg_rma *msg,
 			 msg->context, flags, msg->data);
 }
 
-static ssize_t gnix_ep_write(struct fid_ep *ep, const void *buf, size_t len,
+DIRECT_FN STATIC ssize_t gnix_ep_write(struct fid_ep *ep, const void *buf, size_t len,
 			     void *desc, fi_addr_t dest_addr, uint64_t addr,
 			     uint64_t key, void *context)
 {
@@ -424,7 +434,7 @@ static ssize_t gnix_ep_write(struct fid_ep *ep, const void *buf, size_t len,
 			 context, flags, 0);
 }
 
-static ssize_t gnix_ep_writev(struct fid_ep *ep, const struct iovec *iov,
+DIRECT_FN STATIC ssize_t gnix_ep_writev(struct fid_ep *ep, const struct iovec *iov,
 			      void **desc, size_t count, fi_addr_t dest_addr,
 			      uint64_t addr, uint64_t key, void *context)
 {
@@ -445,7 +455,7 @@ static ssize_t gnix_ep_writev(struct fid_ep *ep, const struct iovec *iov,
 			 dest_addr, addr, key, context, flags, 0);
 }
 
-static ssize_t gnix_ep_writemsg(struct fid_ep *ep, const struct fi_msg_rma *msg,
+DIRECT_FN STATIC ssize_t gnix_ep_writemsg(struct fid_ep *ep, const struct fi_msg_rma *msg,
 				uint64_t flags)
 {
 	struct gnix_fid_ep *gnix_ep;
@@ -468,7 +478,7 @@ static ssize_t gnix_ep_writemsg(struct fid_ep *ep, const struct fi_msg_rma *msg,
 			 msg->context, flags, msg->data);
 }
 
-static ssize_t gnix_ep_rma_inject(struct fid_ep *ep, const void *buf,
+DIRECT_FN STATIC ssize_t gnix_ep_rma_inject(struct fid_ep *ep, const void *buf,
 				  size_t len, fi_addr_t dest_addr,
 				  uint64_t addr, uint64_t key)
 {
@@ -483,7 +493,7 @@ static ssize_t gnix_ep_rma_inject(struct fid_ep *ep, const void *buf,
 	assert((gnix_ep->type == FI_EP_RDM) || (gnix_ep->type == FI_EP_MSG));
 
 	flags = gnix_ep->op_flags | FI_INJECT | GNIX_SUPPRESS_COMPLETION |
-			GNIX_RMA_WRITE_FLAGS_DEF;
+		GNIX_RMA_WRITE_FLAGS_DEF;
 
 	return _gnix_rma(gnix_ep, GNIX_FAB_RQ_RDMA_WRITE,
 			 (uint64_t)buf, len, NULL,
@@ -491,7 +501,7 @@ static ssize_t gnix_ep_rma_inject(struct fid_ep *ep, const void *buf,
 			 NULL, flags, 0);
 }
 
-static ssize_t gnix_ep_writedata(struct fid_ep *ep, const void *buf,
+DIRECT_FN STATIC ssize_t gnix_ep_writedata(struct fid_ep *ep, const void *buf,
 				 size_t len, void *desc, uint64_t data,
 				 fi_addr_t dest_addr, uint64_t addr,
 				 uint64_t key, void *context)
@@ -507,7 +517,7 @@ static ssize_t gnix_ep_writedata(struct fid_ep *ep, const void *buf,
 	assert((gnix_ep->type == FI_EP_RDM) || (gnix_ep->type == FI_EP_MSG));
 
 	flags = gnix_ep->op_flags | FI_REMOTE_CQ_DATA |
-			GNIX_RMA_WRITE_FLAGS_DEF;
+		GNIX_RMA_WRITE_FLAGS_DEF;
 
 	return _gnix_rma(gnix_ep, GNIX_FAB_RQ_RDMA_WRITE,
 			 (uint64_t)buf, len, desc,
@@ -515,7 +525,7 @@ static ssize_t gnix_ep_writedata(struct fid_ep *ep, const void *buf,
 			 context, flags, data);
 }
 
-static ssize_t gnix_ep_rma_injectdata(struct fid_ep *ep, const void *buf,
+DIRECT_FN STATIC ssize_t gnix_ep_rma_injectdata(struct fid_ep *ep, const void *buf,
 				      size_t len, uint64_t data,
 				      fi_addr_t dest_addr, uint64_t addr,
 				      uint64_t key)
@@ -531,7 +541,7 @@ static ssize_t gnix_ep_rma_injectdata(struct fid_ep *ep, const void *buf,
 	assert((gnix_ep->type == FI_EP_RDM) || (gnix_ep->type == FI_EP_MSG));
 
 	flags = gnix_ep->op_flags | FI_INJECT | FI_REMOTE_CQ_DATA |
-			GNIX_SUPPRESS_COMPLETION | GNIX_RMA_WRITE_FLAGS_DEF;
+		GNIX_SUPPRESS_COMPLETION | GNIX_RMA_WRITE_FLAGS_DEF;
 
 	return _gnix_rma(gnix_ep, GNIX_FAB_RQ_RDMA_WRITE,
 			 (uint64_t)buf, len, NULL,
@@ -543,34 +553,39 @@ static ssize_t gnix_ep_rma_injectdata(struct fid_ep *ep, const void *buf,
  * EP Tag matching API function implementations.
  ******************************************************************************/
 
-static ssize_t gnix_ep_trecv(struct fid_ep *ep, void *buf, size_t len,
-			     void *desc, fi_addr_t src_addr, uint64_t tag,
-			     uint64_t ignore, void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_trecv(struct fid_ep *ep, void *buf, size_t len,
+				       void *desc, fi_addr_t src_addr,
+				       uint64_t tag, uint64_t ignore,
+				       void *context)
 {
 	return __ep_recv(ep, buf, len, desc, src_addr, context,
-			FI_TAGGED, tag, ignore);
+			 FI_TAGGED, tag, ignore);
 }
 
-static ssize_t gnix_ep_trecvv(struct fid_ep *ep, const struct iovec *iov,
-			      void **desc, size_t count, fi_addr_t src_addr,
-			      uint64_t tag, uint64_t ignore, void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_trecvv(struct fid_ep *ep,
+					const struct iovec *iov,
+					void **desc, size_t count,
+					fi_addr_t src_addr,
+					uint64_t tag, uint64_t ignore,
+					void *context)
 {
 	return __ep_recvv(ep, iov, desc, count, src_addr, context,
-			FI_TAGGED, tag, ignore);
+			  FI_TAGGED, tag, ignore);
 }
 
-static ssize_t gnix_ep_trecvmsg(struct fid_ep *ep,
-				const struct fi_msg_tagged *msg, uint64_t flags)
+DIRECT_FN STATIC ssize_t gnix_ep_trecvmsg(struct fid_ep *ep,
+					  const struct fi_msg_tagged *msg,
+					  uint64_t flags)
 {
 	uint64_t clean_flags;
 
 	const struct fi_msg _msg = {
-			.msg_iov = msg->msg_iov,
-			.desc = msg->desc,
-			.iov_count = msg->iov_count,
-			.addr = msg->addr,
-			.context = msg->context,
-			.data = msg->data
+		.msg_iov = msg->msg_iov,
+		.desc = msg->desc,
+		.iov_count = msg->iov_count,
+		.addr = msg->addr,
+		.context = msg->context,
+		.data = msg->data
 	};
 
 	clean_flags = (flags & (GNIX_TRECVMSG_FLAGS)) | FI_TAGGED;
@@ -597,36 +612,41 @@ static ssize_t gnix_ep_trecvmsg(struct fid_ep *ep,
 		return -FI_EINVAL;
 
 	return __ep_recvmsg(ep, &_msg, clean_flags, msg->tag,
-			msg->ignore);
+			    msg->ignore);
 }
 
-static ssize_t gnix_ep_tsend(struct fid_ep *ep, const void *buf, size_t len, void *desc,
-			     fi_addr_t dest_addr, uint64_t tag, void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_tsend(struct fid_ep *ep, const void *buf,
+				       size_t len, void *desc,
+				       fi_addr_t dest_addr, uint64_t tag,
+				       void *context)
 {
 	return __ep_send(ep, buf, len, desc, dest_addr, context,
-			FI_TAGGED, tag);
+			 FI_TAGGED, tag);
 }
 
-static ssize_t gnix_ep_tsendv(struct fid_ep *ep, const struct iovec *iov,
-			      void **desc, size_t count, fi_addr_t dest_addr,
-			      uint64_t tag, void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_tsendv(struct fid_ep *ep,
+					const struct iovec *iov,
+					void **desc, size_t count,
+					fi_addr_t dest_addr,
+					uint64_t tag, void *context)
 {
 	return __ep_sendv(ep, iov, desc, count, dest_addr, context,
-			FI_TAGGED, tag);
+			  FI_TAGGED, tag);
 }
 
-static ssize_t gnix_ep_tsendmsg(struct fid_ep *ep,
-				const struct fi_msg_tagged *msg, uint64_t flags)
+DIRECT_FN STATIC ssize_t gnix_ep_tsendmsg(struct fid_ep *ep,
+					  const struct fi_msg_tagged *msg,
+					  uint64_t flags)
 {
 	uint64_t clean_flags;
 
 	const struct fi_msg _msg = {
-			.msg_iov = msg->msg_iov,
-			.desc = msg->desc,
-			.iov_count = msg->iov_count,
-			.addr = msg->addr,
-			.context = msg->context,
-			.data = msg->data
+		.msg_iov = msg->msg_iov,
+		.desc = msg->desc,
+		.iov_count = msg->iov_count,
+		.addr = msg->addr,
+		.context = msg->context,
+		.data = msg->data
 	};
 
 	clean_flags = (flags & GNIX_SENDMSG_FLAGS) | FI_TAGGED;
@@ -634,18 +654,41 @@ static ssize_t gnix_ep_tsendmsg(struct fid_ep *ep,
 	return __ep_sendmsg(ep, &_msg, clean_flags, msg->tag);
 }
 
-static ssize_t gnix_ep_tinject(struct fid_ep *ep, const void *buf, size_t len,
-			       fi_addr_t dest_addr, uint64_t tag)
+DIRECT_FN STATIC ssize_t gnix_ep_tinject(struct fid_ep *ep, const void *buf,
+					 size_t len, fi_addr_t dest_addr,
+					 uint64_t tag)
 {
 	return __ep_inject(ep, buf, len, dest_addr, FI_TAGGED, tag);
 }
 
-ssize_t gnix_ep_tsenddata(struct fid_ep *ep, const void *buf, size_t len,
-			  void *desc, uint64_t data, fi_addr_t dest_addr,
-			  uint64_t tag, void *context)
+DIRECT_FN ssize_t gnix_ep_tsenddata(struct fid_ep *ep, const void *buf,
+				    size_t len, void *desc, uint64_t data,
+				    fi_addr_t dest_addr, uint64_t tag,
+				    void *context)
 {
 	return __ep_senddata(ep, buf, len, desc, data, dest_addr, context,
-			FI_TAGGED, tag);
+			     FI_TAGGED, tag);
+}
+
+/**
+ * Injects data into the data buffer and returns immediately.
+ *
+ * @param[in] ep	the endpoint we are sending data from
+ * @param[in] buf	the data to send
+ * @param[in] len	the length of buf
+ * @param[in] data	remote CQ data to transfer with the data from buf
+ * @param[in] dest_addr	the desitnation address for connectionless transfers
+ * @param[in] tag	the tag associated with the message
+ *
+ * @return FI_SUCCESS	upon successfully writing to the destination
+ * @return -FI_ERRNO	upon an error
+ * @return -FI_ENOSYS	if this operation is not supported
+ */
+DIRECT_FN ssize_t gnix_ep_tinjectdata(struct fid_ep *ep, const void *buf,
+				      size_t len, uint64_t data,
+				      fi_addr_t dest_addr, uint64_t tag)
+{
+	return -FI_ENOSYS;
 }
 
 
@@ -656,43 +699,44 @@ ssize_t gnix_ep_tsenddata(struct fid_ep *ep, const void *buf, size_t len,
 #define GNIX_ATOMIC_WRITE_FLAGS_DEF	(FI_ATOMIC | FI_WRITE)
 #define GNIX_ATOMIC_READ_FLAGS_DEF	(FI_ATOMIC | FI_READ)
 
-static int gnix_ep_atomic_valid(struct fid_ep *ep,
-				enum fi_datatype datatype,
-				enum fi_op op, size_t *count)
+DIRECT_FN STATIC int gnix_ep_atomic_valid(struct fid_ep *ep,
+					  enum fi_datatype datatype,
+					  enum fi_op op, size_t *count)
 {
 	if (count)
 		*count = 1;
 
 	return _gnix_atomic_cmd(datatype, op, GNIX_FAB_RQ_AMO) >= 0 ?
-			0 : -FI_ENOENT;
+		0 : -FI_ENOENT;
 }
 
-static int gnix_ep_fetch_atomic_valid(struct fid_ep *ep,
-				      enum fi_datatype datatype,
-				      enum fi_op op, size_t *count)
+DIRECT_FN STATIC int gnix_ep_fetch_atomic_valid(struct fid_ep *ep,
+						enum fi_datatype datatype,
+						enum fi_op op, size_t *count)
 {
 	if (count)
 		*count = 1;
 
 	return _gnix_atomic_cmd(datatype, op, GNIX_FAB_RQ_FAMO) >= 0 ?
-			0 : -FI_ENOENT;
+		0 : -FI_ENOENT;
 }
 
-static int gnix_ep_cmp_atomic_valid(struct fid_ep *ep,
-				    enum fi_datatype datatype,
-				    enum fi_op op, size_t *count)
+DIRECT_FN STATIC int gnix_ep_cmp_atomic_valid(struct fid_ep *ep,
+					      enum fi_datatype datatype,
+					      enum fi_op op, size_t *count)
 {
 	if (count)
 		*count = 1;
 
 	return _gnix_atomic_cmd(datatype, op, GNIX_FAB_RQ_CAMO) >= 0 ?
-			0 : -FI_ENOENT;
+		0 : -FI_ENOENT;
 }
 
-ssize_t gnix_ep_atomic_write(struct fid_ep *ep, const void *buf, size_t count,
-			     void *desc, fi_addr_t dest_addr, uint64_t addr,
-			     uint64_t key, enum fi_datatype datatype,
-			     enum fi_op op, void *context)
+DIRECT_FN ssize_t gnix_ep_atomic_write(struct fid_ep *ep, const void *buf,
+				       size_t count, void *desc,
+				       fi_addr_t dest_addr, uint64_t addr,
+				       uint64_t key, enum fi_datatype datatype,
+				       enum fi_op op, void *context)
 {
 	struct gnix_fid_ep *gnix_ep;
 	struct fi_msg_atomic msg;
@@ -729,11 +773,14 @@ ssize_t gnix_ep_atomic_write(struct fid_ep *ep, const void *buf, size_t count,
 			    NULL, NULL, 0, NULL, NULL, 0, flags);
 }
 
-ssize_t gnix_ep_atomic_writev(struct fid_ep *ep, const struct fi_ioc *iov,
-			      void **desc, size_t count, fi_addr_t dest_addr,
-			      uint64_t addr, uint64_t key,
-			      enum fi_datatype datatype, enum fi_op op,
-			      void *context)
+DIRECT_FN ssize_t gnix_ep_atomic_writev(struct fid_ep *ep,
+					const struct fi_ioc *iov,
+					void **desc, size_t count,
+					fi_addr_t dest_addr,
+					uint64_t addr, uint64_t key,
+					enum fi_datatype datatype,
+					enum fi_op op,
+					void *context)
 {
 	if (!iov || count != 1) {
 		return -FI_EINVAL;
@@ -745,8 +792,9 @@ ssize_t gnix_ep_atomic_writev(struct fid_ep *ep, const struct fi_ioc *iov,
 				    context);
 }
 
-ssize_t gnix_ep_atomic_writemsg(struct fid_ep *ep,
-				const struct fi_msg_atomic *msg, uint64_t flags)
+DIRECT_FN ssize_t gnix_ep_atomic_writemsg(struct fid_ep *ep,
+					  const struct fi_msg_atomic *msg,
+					  uint64_t flags)
 {
 	struct gnix_fid_ep *gnix_ep;
 
@@ -765,9 +813,11 @@ ssize_t gnix_ep_atomic_writemsg(struct fid_ep *ep,
 			    NULL, NULL, 0, NULL, NULL, 0, flags);
 }
 
-ssize_t gnix_ep_atomic_inject(struct fid_ep *ep, const void *buf, size_t count,
-			      fi_addr_t dest_addr, uint64_t addr, uint64_t key,
-			      enum fi_datatype datatype, enum fi_op op)
+DIRECT_FN ssize_t gnix_ep_atomic_inject(struct fid_ep *ep, const void *buf,
+					size_t count, fi_addr_t dest_addr,
+					uint64_t addr, uint64_t key,
+					enum fi_datatype datatype,
+					enum fi_op op)
 {
 	struct gnix_fid_ep *gnix_ep;
 	struct fi_msg_atomic msg;
@@ -798,19 +848,21 @@ ssize_t gnix_ep_atomic_inject(struct fid_ep *ep, const void *buf, size_t count,
 	msg.op = op;
 
 	flags = gnix_ep->op_flags | FI_INJECT | GNIX_SUPPRESS_COMPLETION |
-			GNIX_ATOMIC_WRITE_FLAGS_DEF;
+		GNIX_ATOMIC_WRITE_FLAGS_DEF;
 
 	return _gnix_atomic(gnix_ep, GNIX_FAB_RQ_AMO, &msg,
 			    NULL, NULL, 0, NULL, NULL, 0, flags);
 }
 
-ssize_t gnix_ep_atomic_readwrite(struct fid_ep *ep,
-				 const void *buf, size_t count, void *desc,
-				 void *result, void *result_desc,
-				 fi_addr_t dest_addr,
-				 uint64_t addr, uint64_t key,
-				 enum fi_datatype datatype, enum fi_op op,
-				 void *context)
+DIRECT_FN ssize_t gnix_ep_atomic_readwrite(struct fid_ep *ep,
+					   const void *buf, size_t count,
+					   void *desc, void *result,
+					   void *result_desc,
+					   fi_addr_t dest_addr,
+					   uint64_t addr, uint64_t key,
+					   enum fi_datatype datatype,
+					   enum fi_op op,
+					   void *context)
 {
 	struct gnix_fid_ep *gnix_ep;
 	struct fi_msg_atomic msg;
@@ -852,15 +904,18 @@ ssize_t gnix_ep_atomic_readwrite(struct fid_ep *ep,
 			    flags);
 }
 
-ssize_t gnix_ep_atomic_readwritev(struct fid_ep *ep,
-				  const struct fi_ioc *iov, void **desc,
-				  size_t count,
-				  struct fi_ioc *resultv, void **result_desc,
-				  size_t result_count,
-				  fi_addr_t dest_addr,
-				  uint64_t addr, uint64_t key,
-				  enum fi_datatype datatype, enum fi_op op,
-				  void *context)
+DIRECT_FN ssize_t gnix_ep_atomic_readwritev(struct fid_ep *ep,
+					    const struct fi_ioc *iov,
+					    void **desc,
+					    size_t count,
+					    struct fi_ioc *resultv,
+					    void **result_desc,
+					    size_t result_count,
+					    fi_addr_t dest_addr,
+					    uint64_t addr, uint64_t key,
+					    enum fi_datatype datatype,
+					    enum fi_op op,
+					    void *context)
 {
 	if (!iov || count != 1 || !resultv)
 		return -FI_EINVAL;
@@ -873,11 +928,12 @@ ssize_t gnix_ep_atomic_readwritev(struct fid_ep *ep,
 					context);
 }
 
-ssize_t gnix_ep_atomic_readwritemsg(struct fid_ep *ep,
-				    const struct fi_msg_atomic *msg,
-				    struct fi_ioc *resultv,
-				    void **result_desc, size_t result_count,
-				    uint64_t flags)
+DIRECT_FN ssize_t gnix_ep_atomic_readwritemsg(struct fid_ep *ep,
+					      const struct fi_msg_atomic *msg,
+					      struct fi_ioc *resultv,
+					      void **result_desc,
+					      size_t result_count,
+					      uint64_t flags)
 {
 	struct gnix_fid_ep *gnix_ep;
 
@@ -898,14 +954,17 @@ ssize_t gnix_ep_atomic_readwritemsg(struct fid_ep *ep,
 			    flags);
 }
 
-ssize_t gnix_ep_atomic_compwrite(struct fid_ep *ep,
-				 const void *buf, size_t count, void *desc,
-				 const void *compare, void *compare_desc,
-				 void *result, void *result_desc,
-				 fi_addr_t dest_addr,
-				 uint64_t addr, uint64_t key,
-				 enum fi_datatype datatype, enum fi_op op,
-				 void *context)
+DIRECT_FN ssize_t gnix_ep_atomic_compwrite(struct fid_ep *ep,
+					   const void *buf, size_t count,
+					   void *desc,
+					   const void *compare,
+					   void *compare_desc,
+					   void *result, void *result_desc,
+					   fi_addr_t dest_addr,
+					   uint64_t addr, uint64_t key,
+					   enum fi_datatype datatype,
+					   enum fi_op op,
+					   void *context)
 {
 	struct gnix_fid_ep *gnix_ep;
 	struct fi_msg_atomic msg;
@@ -950,17 +1009,21 @@ ssize_t gnix_ep_atomic_compwrite(struct fid_ep *ep,
 			    flags);
 }
 
-ssize_t gnix_ep_atomic_compwritev(struct fid_ep *ep,
-				  const struct fi_ioc *iov, void **desc,
-				  size_t count,
-				  const struct fi_ioc *comparev,
-				  void **compare_desc, size_t compare_count,
-				  struct fi_ioc *resultv, void **result_desc,
-				  size_t result_count,
-				  fi_addr_t dest_addr,
-				  uint64_t addr, uint64_t key,
-				  enum fi_datatype datatype, enum fi_op op,
-				  void *context)
+DIRECT_FN ssize_t gnix_ep_atomic_compwritev(struct fid_ep *ep,
+					    const struct fi_ioc *iov,
+					    void **desc,
+					    size_t count,
+					    const struct fi_ioc *comparev,
+					    void **compare_desc,
+					    size_t compare_count,
+					    struct fi_ioc *resultv,
+					    void **result_desc,
+					    size_t result_count,
+					    fi_addr_t dest_addr,
+					    uint64_t addr, uint64_t key,
+					    enum fi_datatype datatype,
+					    enum fi_op op,
+					    void *context)
 {
 	if (!iov || count != 1 || !resultv || !comparev)
 		return -FI_EINVAL;
@@ -975,13 +1038,15 @@ ssize_t gnix_ep_atomic_compwritev(struct fid_ep *ep,
 					context);
 }
 
-ssize_t gnix_ep_atomic_compwritemsg(struct fid_ep *ep,
-				    const struct fi_msg_atomic *msg,
-				    const struct fi_ioc *comparev,
-				    void **compare_desc, size_t compare_count,
-				    struct fi_ioc *resultv,
-				    void **result_desc, size_t result_count,
-				    uint64_t flags)
+DIRECT_FN ssize_t gnix_ep_atomic_compwritemsg(struct fid_ep *ep,
+					      const struct fi_msg_atomic *msg,
+					      const struct fi_ioc *comparev,
+					      void **compare_desc,
+					      size_t compare_count,
+					      struct fi_ioc *resultv,
+					      void **result_desc,
+					      size_t result_count,
+					      uint64_t flags)
 {
 	struct gnix_fid_ep *gnix_ep;
 
@@ -1007,7 +1072,7 @@ ssize_t gnix_ep_atomic_compwritemsg(struct fid_ep *ep,
  ******************************************************************************/
 
 
-static int gnix_ep_control(fid_t fid, int command, void *arg)
+DIRECT_FN STATIC int gnix_ep_control(fid_t fid, int command, void *arg)
 {
 	int ret = FI_SUCCESS;
 	struct gnix_fid_ep *ep;
@@ -1026,15 +1091,15 @@ static int gnix_ep_control(fid_t fid, int command, void *arg)
 			ret = _gnix_vc_cm_init(ep->cm_nic);
 			if (ret != FI_SUCCESS) {
 				GNIX_WARN(FI_LOG_EP_CTRL,
-				     "_gnix_vc_cm_nic_init call returned %d\n",
-					ret);
+					  "_gnix_vc_cm_nic_init call returned %d\n",
+					  ret);
 				goto err;
 			}
 			ret = _gnix_cm_nic_enable(ep->cm_nic);
 			if (ret != FI_SUCCESS) {
 				GNIX_WARN(FI_LOG_EP_CTRL,
-				     "_gnix_cm_nic_enable call returned %d\n",
-					ret);
+					  "_gnix_cm_nic_enable call returned %d\n",
+					  ret);
 				goto err;
 			}
 			ep->enabled = 1;
@@ -1085,7 +1150,7 @@ static void __ep_destruct(void *obj)
 				ep->vc_ht = NULL;
 			} else {
 				GNIX_WARN(FI_LOG_EP_CTRL,
-					"_gnix_ht_destroy returned %s\n",
+					  "_gnix_ht_destroy returned %s\n",
 					  fi_strerror(-ret));
 			}
 		}
@@ -1176,7 +1241,7 @@ static int gnix_ep_close(fid_t fid)
 	return ret;
 }
 
-static int gnix_ep_bind(fid_t fid, struct fid *bfid, uint64_t flags)
+DIRECT_FN STATIC int gnix_ep_bind(fid_t fid, struct fid *bfid, uint64_t flags)
 {
 	int ret = FI_SUCCESS;
 	struct gnix_fid_ep  *ep;
@@ -1380,8 +1445,8 @@ static int __gnix_ep_bound_prep(struct gnix_fid_domain *domain,
 	return ret;
 }
 
-int gnix_ep_open(struct fid_domain *domain, struct fi_info *info,
-		 struct fid_ep **ep, void *context)
+DIRECT_FN int gnix_ep_open(struct fid_domain *domain, struct fi_info *info,
+			   struct fid_ep **ep, void *context)
 {
 	int ret = FI_SUCCESS;
 	int tsret = FI_SUCCESS;
@@ -1391,8 +1456,8 @@ int gnix_ep_open(struct fid_domain *domain, struct fi_info *info,
 	gnix_hashtable_attr_t gnix_ht_attr;
 	gnix_ht_key_t *key_ptr;
 	struct gnix_tag_storage_attr untagged_attr = {
-			.type = GNIX_TAG_LIST,
-			.use_src_addr_matching = 1,
+		.type = GNIX_TAG_LIST,
+		.use_src_addr_matching = 1,
 	};
 	bool free_list_inited = false;
 
@@ -1416,23 +1481,23 @@ int gnix_ep_open(struct fid_domain *domain, struct fi_info *info,
 
 	/* init untagged storages */
 	tsret = _gnix_posted_tag_storage_init(
-			&ep_priv->posted_recv_queue, &untagged_attr);
+		&ep_priv->posted_recv_queue, &untagged_attr);
 	if (tsret)
 		return tsret;
 
 	tsret = _gnix_unexpected_tag_storage_init(
-			&ep_priv->unexp_recv_queue, &untagged_attr);
+		&ep_priv->unexp_recv_queue, &untagged_attr);
 	if (tsret)
 		return tsret;
 
 	/* init tagged storages */
 	tsret = _gnix_posted_tag_storage_init(
-			&ep_priv->tagged_posted_recv_queue, NULL);
+		&ep_priv->tagged_posted_recv_queue, NULL);
 	if (tsret)
 		return tsret;
 
 	tsret = _gnix_unexpected_tag_storage_init(
-			&ep_priv->tagged_unexp_recv_queue, NULL);
+		&ep_priv->tagged_unexp_recv_queue, NULL);
 	if (tsret)
 		return tsret;
 
@@ -1526,8 +1591,8 @@ int gnix_ep_open(struct fid_domain *domain, struct fi_info *info,
 			ret = _gnix_get_new_cdm_id(domain_priv, &cdm_id);
 			if (ret != FI_SUCCESS) {
 				GNIX_WARN(FI_LOG_EP_CTRL,
-					    "gnix_get_new_cdm_id call returned %s\n",
-					     fi_strerror(-ret));
+					  "gnix_get_new_cdm_id call returned %s\n",
+					  fi_strerror(-ret));
 				goto err;
 			}
 			ep_priv->my_name.gnix_addr.cdm_id = cdm_id;
@@ -1535,8 +1600,8 @@ int gnix_ep_open(struct fid_domain *domain, struct fi_info *info,
 
 		key_ptr = (gnix_ht_key_t *)&ep_priv->my_name.gnix_addr;
 		ret = _gnix_ht_insert(ep_priv->cm_nic->addr_to_ep_ht,
-					*key_ptr,
-					ep_priv);
+				      *key_ptr,
+				      ep_priv);
 		if ((ret != FI_SUCCESS) && (ret != -FI_ENOSPC)) {
 			GNIX_WARN(FI_LOG_EP_CTRL,
 				  "__gnix_ht_insert returned %d\n",
@@ -1559,8 +1624,8 @@ int gnix_ep_open(struct fid_domain *domain, struct fi_info *info,
 		ret = _gnix_ht_init(ep_priv->vc_ht, &gnix_ht_attr);
 		if (ret != FI_SUCCESS) {
 			GNIX_WARN(FI_LOG_EP_CTRL,
-				    "gnix_ht_init call returned %d\n",
-				     ret);
+				  "gnix_ht_init call returned %d\n",
+				  ret);
 			goto err;
 		}
 		fastlock_init(&ep_priv->vc_ht_lock);
@@ -1626,8 +1691,8 @@ static int __match_context(struct slist_entry *item, const void *arg)
 }
 
 static inline struct gnix_fab_req *__find_tx_req(
-		struct gnix_fid_ep *ep,
-		void *context)
+	struct gnix_fid_ep *ep,
+	void *context)
 {
 	struct gnix_fab_req *req = NULL;
 	struct slist_entry *entry;
@@ -1635,13 +1700,13 @@ static inline struct gnix_fab_req *__find_tx_req(
 	GNIX_HASHTABLE_ITERATOR(ep->vc_ht, iter);
 
 	GNIX_DEBUG(FI_LOG_EP_CTRL, "searching VCs for the correct context to"
-			" cancel, context=%p", context);
+		   " cancel, context=%p", context);
 
 	fastlock_acquire(&ep->vc_ht_lock);
 	while ((vc = _gnix_ht_iterator_next(&iter))) {
 		fastlock_acquire(&vc->tx_queue_lock);
 		entry = slist_remove_first_match(&vc->tx_queue,
-				__match_context, context);
+						 __match_context, context);
 		fastlock_release(&vc->tx_queue_lock);
 		if (entry) {
 			req = container_of(entry, struct gnix_fab_req, slist);
@@ -1654,8 +1719,8 @@ static inline struct gnix_fab_req *__find_tx_req(
 }
 
 static inline struct gnix_fab_req *__find_rx_req(
-		struct gnix_fid_ep *ep,
-		void *context)
+	struct gnix_fid_ep *ep,
+	void *context)
 {
 	struct gnix_fab_req *req = NULL;
 
@@ -1668,13 +1733,13 @@ static inline struct gnix_fab_req *__find_rx_req(
 
 	fastlock_acquire(&ep->tagged_queue_lock);
 	req = _gnix_remove_req_by_context(&ep->tagged_posted_recv_queue,
-			context);
+					  context);
 	fastlock_release(&ep->tagged_queue_lock);
 
 	return req;
 }
 
-static ssize_t gnix_ep_cancel(fid_t fid, void *context)
+DIRECT_FN STATIC ssize_t gnix_ep_cancel(fid_t fid, void *context)
 {
 	int ret = FI_SUCCESS;
 	struct gnix_fid_ep *ep;
@@ -1718,7 +1783,7 @@ static ssize_t gnix_ep_cancel(fid_t fid, void *context)
 	if (err_cq) {
 		/* add canceled event */
 		if (!(req->type == GNIX_FAB_RQ_RDMA_READ ||
-				req->type == GNIX_FAB_RQ_RDMA_WRITE)) {
+		      req->type == GNIX_FAB_RQ_RDMA_WRITE)) {
 			if (!is_send) {
 				addr = (void *) req->msg.recv_addr;
 				len = req->msg.recv_len;
@@ -1736,7 +1801,7 @@ static ssize_t gnix_ep_cancel(fid_t fid, void *context)
 		flags = req->flags;
 
 		_gnix_cq_add_error(err_cq, context, flags, len, addr, 0 /* data */,
-				tag, len, FI_ECANCELED, FI_ECANCELED, 0);
+				   tag, len, FI_ECANCELED, FI_ECANCELED, 0);
 
 	}
 
@@ -1776,8 +1841,8 @@ ssize_t gnix_cancel(fid_t fid, void *context)
 	return ret;
 }
 
-static int gnix_ep_getopt(fid_t fid, int level, int optname,
-			  void *optval, size_t *optlen)
+DIRECT_FN STATIC int gnix_ep_getopt(fid_t fid, int level, int optname,
+				    void *optval, size_t *optlen)
 {
 	struct gnix_fid_ep *gnix_ep;
 
@@ -1800,8 +1865,8 @@ static int gnix_ep_getopt(fid_t fid, int level, int optname,
 	return 0;
 }
 
-static int gnix_ep_setopt(fid_t fid, int level, int optname,
-			  const void *optval, size_t optlen)
+DIRECT_FN STATIC int gnix_ep_setopt(fid_t fid, int level, int optname,
+				    const void *optval, size_t optlen)
 {
 	struct gnix_fid_ep *gnix_ep;
 
@@ -1825,7 +1890,7 @@ static int gnix_ep_setopt(fid_t fid, int level, int optname,
 	return 0;
 }
 
-static ssize_t gnix_ep_rx_size_left(struct fid_ep *ep)
+DIRECT_FN STATIC ssize_t gnix_ep_rx_size_left(struct fid_ep *ep)
 {
 	if (!ep)
 		return -FI_EINVAL;
@@ -1845,7 +1910,7 @@ static ssize_t gnix_ep_rx_size_left(struct fid_ep *ep)
 	return 64;
 }
 
-static ssize_t gnix_ep_tx_size_left(struct fid_ep *ep)
+DIRECT_FN STATIC ssize_t gnix_ep_tx_size_left(struct fid_ep *ep)
 {
 	if (!ep)
 		return -FI_EINVAL;
@@ -1862,6 +1927,22 @@ static ssize_t gnix_ep_tx_size_left(struct fid_ep *ep)
 
 	/* We can queue TXs indefinitely, return an arbitrary low water mark. */
 	return 64;
+}
+
+__attribute__((unused))
+DIRECT_FN STATIC int gnix_tx_context(struct fid_ep *ep, int index,
+				     struct fi_tx_attr *attr,
+				     struct fid_ep **tx_ep, void *context)
+{
+	return -FI_ENOSYS;
+}
+
+__attribute__((unused))
+DIRECT_FN STATIC int gnix_rx_context(struct fid_ep *ep, int index,
+				     struct fi_tx_attr *attr,
+				     struct fid_ep **rx_ep, void *context)
+{
+	return -FI_ENOSYS;
 }
 
 /*******************************************************************************
@@ -1942,4 +2023,3 @@ struct fi_ops_atomic gnix_ep_atomic_ops = {
 	.readwritevalid = gnix_ep_fetch_atomic_valid,
 	.compwritevalid = gnix_ep_cmp_atomic_valid,
 };
-

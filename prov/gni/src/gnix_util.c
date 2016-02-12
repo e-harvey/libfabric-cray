@@ -489,4 +489,3 @@ int _gnix_nics_per_rank(uint32_t *nics_per_rank)
 
 	return FI_SUCCESS;
 }
-

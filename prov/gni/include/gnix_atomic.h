@@ -48,4 +48,3 @@ ssize_t _gnix_atomic(struct gnix_fid_ep *ep,
 		     uint64_t flags);
 
 #endif /* _GNIX_ATOMIC_H_ */
-

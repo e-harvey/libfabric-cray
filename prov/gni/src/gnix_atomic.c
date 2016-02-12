@@ -498,4 +498,3 @@ err_get_vc:
 	}
 	return rc;
 }
-

@@ -443,8 +443,8 @@ err:
  * typically be used in the critical path for messaging/rma/amo
  * requests
  */
-static int gnix_av_lookup(struct fid_av *av, fi_addr_t fi_addr, void *addr,
-			  size_t *addrlen)
+DIRECT_FN STATIC int gnix_av_lookup(struct fid_av *av, fi_addr_t fi_addr,
+				    void *addr, size_t *addrlen)
 {
 	struct gnix_fid_av *gnix_av;
 	struct gnix_ep_name ep_name = { {0} };
@@ -489,8 +489,9 @@ static int gnix_av_lookup(struct fid_av *av, fi_addr_t fi_addr, void *addr,
 	return FI_SUCCESS;
 }
 
-static int gnix_av_insert(struct fid_av *av, const void *addr, size_t count,
-			  fi_addr_t *fi_addr, uint64_t flags, void *context)
+DIRECT_FN STATIC int gnix_av_insert(struct fid_av *av, const void *addr,
+				    size_t count, fi_addr_t *fi_addr,
+				    uint64_t flags, void *context)
 {
 	struct gnix_fid_av *int_av = NULL;
 	int ret = FI_SUCCESS;
@@ -512,7 +513,7 @@ static int gnix_av_insert(struct fid_av *av, const void *addr, size_t count,
 	switch (int_av->type) {
 	case FI_AV_TABLE:
 		ret =
-		    table_insert(int_av, addr, count, fi_addr, flags, context);
+			table_insert(int_av, addr, count, fi_addr, flags, context);
 		break;
 	case FI_AV_MAP:
 		ret = map_insert(int_av, addr, count, fi_addr, flags, context);
@@ -526,8 +527,23 @@ err:
 	return ret;
 }
 
-static int gnix_av_remove(struct fid_av *av, fi_addr_t *fi_addr, size_t count,
-			  uint64_t flags)
+DIRECT_FN int gnix_av_insertsvc(struct fid_av *av, const char *node,
+				const char *service, fi_addr_t *fi_addr,
+				uint64_t flags, void *context)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN int gnix_av_insertsym(struct fid_av *av, const char *node,
+				size_t nodecnt, const char *service,
+				size_t svccnt, fi_addr_t *fi_addr,
+				uint64_t flags, void *context)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN STATIC int gnix_av_remove(struct fid_av *av, fi_addr_t *fi_addr,
+				    size_t count, uint64_t flags)
 {
 	struct gnix_fid_av *int_av = NULL;
 	int ret = FI_SUCCESS;
@@ -567,17 +583,17 @@ err:
  * device_addr:cdm_id
  * where device_addr and cdm_id are represented in hexadecimal.
  */
-static const char *gnix_av_straddr(struct fid_av *av, const void *addr,
-				   char *buf, size_t *len)
+DIRECT_FN STATIC const char *gnix_av_straddr(struct fid_av *av,
+					     const void *addr, char *buf,
+					     size_t *len)
 {
 	char int_buf[64];
 	int size;
 
 	const struct gnix_address *gnix_addr = addr;
 
-	size =
-	    snprintf(int_buf, sizeof(int_buf), "0x%08" PRIx32 ":0x%08" PRIx32,
-		     gnix_addr->device_addr, gnix_addr->cdm_id);
+	size = snprintf(int_buf, sizeof(int_buf), "0x%08" PRIx32 ":0x%08" PRIx32,
+			gnix_addr->device_addr, gnix_addr->cdm_id);
 
 	snprintf(buf, *len, "%s", int_buf);
 	*len = size + 1;
@@ -602,7 +618,7 @@ static void __av_destruct(void *obj)
 		while (!slist_empty(&av->block_list)) {
 			blk_entry = slist_remove_head(&av->block_list);
 			temp = container_of(blk_entry,
-					struct gnix_av_block, slist);
+					    struct gnix_av_block, slist);
 			free(temp->base);
 			free(temp);
 		}
@@ -640,20 +656,24 @@ static int gnix_av_close(fid_t fid)
 	references_held = _gnix_ref_put(av);
 	if (references_held) {
 		GNIX_INFO(FI_LOG_AV, "failed to fully close av due to lingering "
-				"references. references=%i av=%p\n",
-				references_held, av);
+			  "references. references=%i av=%p\n",
+			  references_held, av);
 	}
 
 err:
 	return ret;
 }
 
+DIRECT_FN int gnix_av_bind(struct fid_av *av, struct fid *fid, uint64_t flags)
+{
+	return -FI_ENOSYS;
+}
 
 /*
  * TODO: Support shared named AVs.
  */
-int gnix_av_open(struct fid_domain *domain, struct fi_av_attr *attr,
-		 struct fid_av **av, void *context)
+DIRECT_FN int gnix_av_open(struct fid_domain *domain, struct fi_av_attr *attr,
+			   struct fid_av **av, void *context)
 {
 	struct gnix_fid_domain *int_dom = NULL;
 	struct gnix_fid_av *int_av = NULL;
@@ -737,7 +757,7 @@ int gnix_av_open(struct fid_domain *domain, struct fi_av_attr *attr,
 
 		ret = _gnix_ht_init(int_av->map_ht,
 				    &ht_attr);
-		 slist_init(&int_av->block_list);
+		slist_init(&int_av->block_list);
 	}
 	_gnix_ref_init(&int_av->ref_cnt, 1, __av_destruct);
 

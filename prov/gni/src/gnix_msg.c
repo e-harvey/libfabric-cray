@@ -1638,4 +1638,3 @@ err_get_vc:
 	}
 	return ret;
 }
-

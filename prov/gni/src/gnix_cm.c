@@ -36,7 +36,10 @@
 #include "gnix_nic.h"
 #include "gnix_cm_nic.h"
 
-/*
+/*******************************************************************************
+ * API function implementations.
+ ******************************************************************************/
+/**
  * Retrieve the local endpoint address.
  *
  * addrlen: Should indicate the size of the addr buffer. On output will contain
@@ -48,7 +51,7 @@
  *
  * return: FI_SUCCESS or negative error value.
  */
-static int gnix_getname(fid_t fid, void *addr, size_t *addrlen)
+DIRECT_FN STATIC int gnix_getname(fid_t fid, void *addr, size_t *addrlen)
 {
 	struct gnix_ep_name name = {{0}};
 	struct gnix_fid_ep *ep = NULL;
@@ -104,6 +107,43 @@ static int gnix_getname(fid_t fid, void *addr, size_t *addrlen)
 
 err:
 	return ret;
+}
+
+DIRECT_FN int gnix_setname(fid_t fid, void *addr, size_t addrlen)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN int gnix_getpeer(struct fid_ep *ep, void *addr, size_t *addrlen)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN int gnix_connect(struct fid_ep *ep, const void *addr,
+			   const void *param, size_t paramlen)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN int gnix_listen(struct fid_pep *pep)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN int gnix_accept(struct fid_ep *ep, const void *param, size_t paramlen)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN int gnix_reject(struct fid_pep *pep, fid_t handle, const void *param,
+			  size_t paramlen)
+{
+	return -FI_ENOSYS;
+}
+
+DIRECT_FN int gnix_shutdown(struct fid_ep *ep, uint64_t flags)
+{
+	return -FI_ENOSYS;
 }
 
 struct fi_ops_cm gnix_cm_ops = {

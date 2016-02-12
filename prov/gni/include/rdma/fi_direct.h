@@ -1,6 +1,8 @@
 /*
- * Copyright (c) 2015 Cray Inc.  All rights reserved.
- * Copyright (c) 2015 Los Alamos National Security, LLC. All rights reserved.
+ * Copyright (c) 2013-2014 Intel Corporation. All rights reserved.
+ * Copyright (c) 2015-2016 Los Alamos National Security, LLC. All
+ * rights reserved.
+ * Copyright (c) 2015-2016 Cray Inc. All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -31,27 +33,11 @@
  * SOFTWARE.
  */
 
-#ifndef _GNIX_RMA_H_
-#define _GNIX_RMA_H_
+#ifndef _FI_DIRECT_H_
+#define _FI_DIRECT_H_
 
-ssize_t _gnix_rma(struct gnix_fid_ep *ep, enum gnix_fab_req_type fr_type,
-		  uint64_t loc_addr, size_t len, void *mdesc,
-		  uint64_t dest_addr, uint64_t rem_addr, uint64_t mkey,
-		  void *context, uint64_t flags, uint64_t data);
+struct fi_context {
+	void *internal[4];
+};
 
-/**
- * @brief try to deliver an IRQ to peer
- *
- * This routine can be used to deliver an IRQ to the remote peer
- * via a GNI_PostCqWrite.
- *
- * @param[in] vc       pointer to previously allocated gnix_vc struct which
- *                     is in connected state
- * @return FI_SUCCESS  GNI_PostCqWrite successfully posted.
- * @return -FI_INVALID vc in invalid state or incorrect memory handle used
- * @return -FI_ENOSPC  no free tx descriptors
- */
-int _gnix_rma_post_irq(struct gnix_vc *vc);
-
-
-#endif /* _GNIX_RMA_H_ */
+#endif /* _FI_DIRECT_H_ */

@@ -485,3 +485,41 @@ GNI_INI
 
 	return (provider);
 }
+
+/*******************************************************************************
+ * API Functionality.
+ ******************************************************************************/
+/**
+ * Allocates a new passive endpoint.
+ *
+ * @param[in] fabric	the fabric
+ * @param[in] info	details about the fabric endpoint to be opened
+ * @param[in/out] pep	the passive endpoint to open
+ * @param[in] context	the context associated with the endpoint
+ *
+ * @return FI_SUCCESS	upon successfully opening a passive endpoint
+ * @return -FI_ERRNO	upon an error
+ * @return -FI_ENOSYS	if this operation is not supported
+ */
+DIRECT_FN int gnix_passive_ep_open(struct fid_fabric *fabric,
+				   struct fi_info *info, struct fid_pep **pep,
+				   void *context)
+{
+	return -FI_ENOSYS;
+}
+
+/**
+ * Associates the passive endpoint with an event queue.
+ *
+ * @param[in] fid	the fabric or access domain
+ * @param[in] bfid	the fabric identifier for the endpoint
+ * @param[in] flags	flags to apply to the binding
+ *
+ * @return FI_SUCCESS	upon successfully binding a passive endpoint to an EQ
+ * @return -FI_ERRNO	upon an error
+ * @return -FI_ENOSYS	if this operation is not supported
+ */
+DIRECT_FN int gnix_pep_bind(fid_t fid, fid_t *bfid, uint64_t flags)
+{
+	return -FI_ENOSYS;
+}
