@@ -271,7 +271,34 @@ static inline int __gnix_ep_init_vc(struct gnix_fid_ep *ep_priv)
 
 	type = ep_priv->av->type;
 
-	if (likely(type == FI_AV_TABLE)) {
+	/*
+	 *Initialize VC hashtable - this is always used
+	 * regardless of AV type associated with the EP
+	 */
+
+	ep_priv->vc_ht = calloc(1, sizeof(struct gnix_hashtable));
+	if (ep_priv->vc_ht == NULL)
+		goto err;
+
+	gnix_ht_attr.ht_initial_size = ep_priv->domain->params.ct_init_size;
+	gnix_ht_attr.ht_maximum_size = ep_priv->domain->params.ct_max_size;
+	gnix_ht_attr.ht_increase_step = ep_priv->domain->params.ct_step;
+	gnix_ht_attr.ht_increase_type = GNIX_HT_INCREASE_MULT;
+	gnix_ht_attr.ht_collision_thresh = 500;
+	gnix_ht_attr.ht_hash_seed = 0xdeadbeefbeefdead;
+	gnix_ht_attr.ht_internal_locking = 0;
+	gnix_ht_attr.destructor = __gnix_vc_destroy_ht_entry;
+
+	ret = _gnix_ht_init(ep_priv->vc_ht, &gnix_ht_attr);
+	if (ret != FI_SUCCESS) {
+		GNIX_WARN(FI_LOG_EP_CTRL,
+			  "_gnix_ht_init returned %s\n",
+			  fi_strerror(-ret));
+
+		goto err;
+	}
+
+	if (type == FI_AV_TABLE) {
 		/* Initialize VC vector for FI_AV_TABLE */
 		ep_priv->vc_table = calloc(1, sizeof(struct gnix_vector));
 		if(ep_priv->vc_table == NULL)
@@ -293,33 +320,7 @@ static inline int __gnix_ep_init_vc(struct gnix_fid_ep *ep_priv)
 				  fi_strerror(ret));
 			goto err;
 		}
-	} else if (type == FI_AV_MAP) {
-		/* Initialize VC hashtable for FI_AV_MAP */
-		ep_priv->vc_ht = calloc(1, sizeof(struct gnix_hashtable));
-		if (ep_priv->vc_ht == NULL)
-			goto err;
-
-		gnix_ht_attr.ht_initial_size = ep_priv->domain->params.ct_init_size;
-		gnix_ht_attr.ht_maximum_size = ep_priv->domain->params.ct_max_size;
-		gnix_ht_attr.ht_increase_step = ep_priv->domain->params.ct_step;
-		gnix_ht_attr.ht_increase_type = GNIX_HT_INCREASE_MULT;
-		gnix_ht_attr.ht_collision_thresh = 500;
-		gnix_ht_attr.ht_hash_seed = 0xdeadbeefbeefdead;
-		gnix_ht_attr.ht_internal_locking = 0;
-		gnix_ht_attr.destructor = __gnix_vc_destroy_ht_entry;
-
-		ret = _gnix_ht_init(ep_priv->vc_ht, &gnix_ht_attr);
-		if (ret != FI_SUCCESS) {
-			GNIX_WARN(FI_LOG_EP_CTRL,
-				  "_gnix_ht_init returned %s\n",
-				  fi_strerror(-ret));
-			goto err;
-		}
-	} else {
-		GNIX_WARN(FI_LOG_EP_CTRL,
-			  "in __gnix_ep_init_vc av type \"%d\" invalid\n",
-			  type);
-        }
+	}
 
 	return FI_SUCCESS;
 
