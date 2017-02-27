@@ -36,7 +36,7 @@
 
 #include <fi.h>
 #include <fi_list.h>
-#include "include/gnix_util.h"
+#include "gnix_util.h"
 
 /* Number of elements to seed the freelist with */
 #define GNIX_FL_INIT_SIZE 100

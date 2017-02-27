@@ -104,7 +104,12 @@ static struct gnix_vc *_gnix_ep_vc_lookup(struct gnix_fid_ep *ep, uint64_t key)
 	}
 
 	if (ep->av->type == FI_AV_TABLE) {
+#ifndef VEC_OPS_TABLE_ENABLED
 		ret = _gnix_vec_at(ep->vc_table, (void **)&vc, key);
+#else
+		#warning "gnix vector ops table is enabled for AV_TABLE."
+		ret = ep->vc_table->ops.at(ep->vc_table, (void **)&vc, key);
+#endif // VEC_OPS_TABLE_ENABLED
 		if (ret != FI_SUCCESS) {
 			vc = NULL;
 		}
@@ -129,7 +134,14 @@ static int _gnix_ep_vc_store(struct gnix_fid_ep *ep, struct gnix_vc *vc,
 	assert(ep->av);
 
 	if (ep->av->type == FI_AV_TABLE) {
+#ifndef VEC_OPS_TABLE_ENABLED
 		ret = _gnix_vec_insert_at(ep->vc_table, (void *)vc, key);
+#else
+		#warning "gnix vector ops table is enabled for AV_TABLE."
+		ret = ep->vc_table->ops.insert_at(ep->vc_table, (void *)vc,
+						   key);
+
+#endif // VEC_OPS_TABLE_ENABLED
 	} else {
 		ret = _gnix_ht_insert(ep->vc_ht, key, vc);
 	}
@@ -692,7 +704,7 @@ static int __gnix_vc_connect_to_self(struct gnix_vc *vc)
 err_mbox_init:
 	_gnix_mbox_free(vc->smsg_mbox);
 	vc->smsg_mbox = NULL;
-	
+
 	return ret;
 }
 

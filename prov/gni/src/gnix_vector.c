@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 Los Alamos National Security, LLC.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2016 Cray Inc.  All rights reserved.
  *
@@ -34,8 +34,12 @@
 
 #include "gnix_vector.h"
 
-static gnix_vector_ops_t __gnix_vec_lockless_ops;
+static gnix_vector_ops_t __gnix_vec_external_ops;
 static gnix_vector_ops_t __gnix_vec_locked_ops;
+static gnix_vector_ops_t __gnix_vec_lockless_ops;
+
+static gnix_vector_ops_t *internal_ops[2] = {&__gnix_vec_lockless_ops,
+					     &__gnix_vec_locked_ops};
 
 /*******************************************************************************
  * INTERNAL HELPER FNS
@@ -124,6 +128,7 @@ static inline int __gnix_vec_create(gnix_vector_t *vec, gnix_vec_attr_t *attr)
 	}
 
 	memcpy(&vec->attr, attr, sizeof(gnix_vec_attr_t));
+	vec->ops = __gnix_vec_external_ops;
 
 	return FI_SUCCESS;
 }
@@ -137,7 +142,7 @@ static inline int __gnix_vec_close(gnix_vector_t *vec)
 	}
 
 	free(vec->vector);
-	vec->ops = NULL;
+	memset(&vec->ops, 0, sizeof(vec->ops));
 	vec->attr.cur_size = 0;
 	vec->state = GNIX_VEC_STATE_DEAD;
 
@@ -231,7 +236,6 @@ static int __gnix_vec_lf_init(gnix_vector_t *vec, gnix_vec_attr_t *attr)
 	int ret;
 
 	ret = __gnix_vec_create(vec, attr);
-	vec->ops = &__gnix_vec_lockless_ops;
 	vec->state = GNIX_VEC_STATE_READY;
 
 	return ret;
@@ -310,7 +314,6 @@ static int __gnix_vec_lk_init(gnix_vector_t *vec, gnix_vec_attr_t *attr)
 
 	rwlock_init(&vec->lock);
 	ret = __gnix_vec_create(vec, attr);
-	vec->ops = &__gnix_vec_locked_ops;
 	vec->state = GNIX_VEC_STATE_READY;
 
 	return ret;
@@ -507,6 +510,154 @@ int _gnix_vec_close(gnix_vector_t *vec)
 		}
 	}
 }
+
+/*******************************************************************************
+ * OPS FNS
+ ******************************************************************************/
+inline int _gnix_vec_resize(gnix_vector_t *vec, uint32_t size)
+{
+	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
+
+	if (unlikely(!vec)) {
+		GNIX_WARN(FI_LOG_EP_CTRL, "Invalid parameter to "
+			"_gnix_vec_resize.\n");
+		return -FI_EINVAL;
+	} else {
+		return internal_ops[vec->attr.vec_internal_locking]->resize(vec,
+									    size);
+	}
+}
+
+inline int _gnix_vec_at(gnix_vector_t *vec, void **element,
+			gnix_vec_index_t index)
+{
+	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
+
+	if (unlikely(!vec || !element)) {
+		GNIX_WARN(FI_LOG_EP_CTRL, "Invalid parameter to "
+			"_gnix_vec_at\n");
+		return -FI_EINVAL;
+	} else {
+		return internal_ops[vec->attr.vec_internal_locking]->at(vec,
+									element,
+									index);
+	}
+}
+
+inline int _gnix_vec_last(gnix_vector_t *vec, void **element)
+{
+	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
+
+	if (unlikely(!vec || !element)) {
+		GNIX_WARN(FI_LOG_EP_CTRL, "Invalid parameter to "
+			"_gnix_vec_last\n");
+		return -FI_EINVAL;
+	} else {
+		return internal_ops[vec->attr.vec_internal_locking]->last(vec,
+									  element);
+	}
+}
+
+inline int _gnix_vec_first(gnix_vector_t *vec, void **element)
+{
+	return _gnix_vec_at(vec, element, 0);
+}
+
+inline int _gnix_vec_remove_at(gnix_vector_t *vec,
+			       gnix_vec_index_t index)
+{
+	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
+
+	if (unlikely(!vec)) {
+		GNIX_WARN(FI_LOG_EP_CTRL, "Invalid parameter to "
+			"_gnix_vec_remove_at\n");
+		return -FI_EINVAL;
+	} else {
+		return internal_ops[vec->attr.vec_internal_locking]->remove_at(
+			vec, index);
+	}
+}
+
+inline int _gnix_vec_remove_last(gnix_vector_t *vec)
+{
+	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
+
+	if (unlikely(!vec)) {
+		GNIX_WARN(FI_LOG_EP_CTRL, "Invalid parameter to "
+			"_gnix_vec_remove_at\n");
+		return -FI_EINVAL;
+	} else {
+		return internal_ops[vec->attr.vec_internal_locking]->remove_last(
+			vec);
+	}
+}
+
+inline int _gnix_vec_remove_first(gnix_vector_t *vec)
+{
+	return _gnix_vec_remove_at(vec, 0);
+}
+
+inline int _gnix_vec_insert_at(gnix_vector_t *vec,
+			       gnix_vec_entry_t *entry,
+			       gnix_vec_index_t index)
+{
+	if (unlikely(!vec || !entry)) {
+		GNIX_WARN(FI_LOG_EP_CTRL, "Invalid parameter to "
+			"_gnix_vec_insert_at\n");
+		return -FI_EINVAL;
+	} else {
+		return internal_ops[vec->attr.vec_internal_locking]->insert_at(
+			vec, entry,
+			index);
+	}
+}
+
+inline int _gnix_vec_insert_last(gnix_vector_t *vec,
+				 gnix_vec_entry_t *entry)
+{
+	if (unlikely(!vec || !entry)) {
+		GNIX_WARN(FI_LOG_EP_CTRL, "Invalid parameter to "
+			"_gnix_vec_insert_last\n");
+		return -FI_EINVAL;
+	} else {
+		return internal_ops[vec->attr.vec_internal_locking]->insert_last(
+			vec, entry);
+	}
+}
+
+inline int _gnix_vec_insert_first(gnix_vector_t *vec,
+				  gnix_vec_entry_t *entry)
+{
+	return _gnix_vec_insert_at(vec, entry, 0);
+}
+
+inline
+gnix_vec_entry_t *_gnix_vec_iterator_next(struct gnix_vector_iter *iter)
+{
+	if (iter == NULL) {
+		GNIX_WARN(FI_LOG_EP_DATA, "Invalid parameter to"
+			"_gnix_vec_iterator_next\n");
+		return NULL;
+	} else {
+		return internal_ops[iter->vec->attr.vec_internal_locking]->iter_next(
+			iter);
+	}
+}
+
+static gnix_vector_ops_t __gnix_vec_external_ops = {
+	.resize = _gnix_vec_resize,
+
+	.insert_last = _gnix_vec_insert_last,
+	.insert_at = _gnix_vec_insert_at,
+
+	.remove_last = _gnix_vec_remove_last,
+	.remove_at = _gnix_vec_remove_at,
+
+	.last = _gnix_vec_last,
+	.at = _gnix_vec_at,
+
+	.iter_next = _gnix_vec_iterator_next,
+};
 
 static gnix_vector_ops_t __gnix_vec_lockless_ops = {
 	.resize = __gnix_vec_lf_resize,
