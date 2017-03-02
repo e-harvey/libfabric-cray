@@ -36,6 +36,7 @@
 #define _GNIX_CM_NIC_H_
 
 #include "gnix.h"
+#include "gnix_datagram.h"
 
 #define GNIX_CM_NIC_MAX_MSG_SIZE (GNI_DATAGRAM_MAXSIZE - sizeof(uint8_t))
 

@@ -40,7 +40,6 @@
 #include <assert.h>
 
 #include "gnix.h"
-#include "gnix_datagram.h"
 #include "gnix_cm_nic.h"
 #include "gnix_nic.h"
 #include "gnix_hashtable.h"

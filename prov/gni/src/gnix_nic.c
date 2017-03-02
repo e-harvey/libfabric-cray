@@ -603,7 +603,6 @@ int _gnix_nic_free_rem_id(struct gnix_nic *nic, int remote_id)
  * with GNI nic being used by this VC.  Using a bitmap to expedite
  * scanning vc's in the case of a GNI CQ overrun.
  */
-inline
 int _gnix_nic_get_rem_id(struct gnix_nic *nic, int *remote_id, void *entry)
 {
 	int ret = FI_SUCCESS;
@@ -868,7 +867,7 @@ err:
 	free(nic);
 }
 
-inline int _gnix_nic_free(struct gnix_nic *nic)
+int _gnix_nic_free(struct gnix_nic *nic)
 {
 	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
 

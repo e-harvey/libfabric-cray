@@ -62,18 +62,6 @@ struct slist_entry *_gnix_queue_peek(struct gnix_queue *queue)
 }
 
 static inline
-struct slist_entry *_gnix_queue_get_free(struct gnix_queue *queue)
-{
-	struct slist_entry *ret;
-
-	ret = _gnix_queue_dequeue_free(queue);
-	if (!ret)
-		ret = queue->alloc_item(queue->entry_size);
-
-	return ret;
-}
-
-static inline
 struct slist_entry *_gnix_queue_dequeue(struct gnix_queue *queue)
 {
 	return slist_remove_head(&queue->item_list);
@@ -83,6 +71,18 @@ static inline
 struct slist_entry *_gnix_queue_dequeue_free(struct gnix_queue *queue)
 {
 	return slist_remove_head(&queue->free_list);
+}
+
+static inline
+struct slist_entry *_gnix_queue_get_free(struct gnix_queue *queue)
+{
+	struct slist_entry *ret;
+
+	ret = _gnix_queue_dequeue_free(queue);
+	if (!ret)
+		ret = queue->alloc_item(queue->entry_size);
+
+	return ret;
 }
 
 static inline

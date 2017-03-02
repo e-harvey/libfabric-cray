@@ -1092,16 +1092,6 @@ extern uint32_t gnix_cdm_modes;
 extern atomic_t gnix_id_counter;
 
 
-/*
- * linked list helpers
- */
-
-static inline void gnix_slist_insert_tail(struct slist_entry *item,
-					  struct slist *list)
-{
-	item->next = NULL;
-	slist_insert_tail(item, list);
-}
 
 /*
  * prototypes for fi ops methods

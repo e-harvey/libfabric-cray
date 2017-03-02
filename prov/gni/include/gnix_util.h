@@ -210,6 +210,17 @@ static inline void dlist_splice_tail(
 	dlist_splice_head(head->prev, to_splice);
 }
 
+/*
+ * linked list helpers
+ */
+
+static inline void gnix_slist_insert_tail(struct slist_entry *item,
+					  struct slist *list)
+{
+	item->next = NULL;
+	slist_insert_tail(item, list);
+}
+
 #define rwlock_t pthread_rwlock_t
 #define rwlock_init(lock) pthread_rwlock_init(lock, NULL)
 #define rwlock_destroy(lock) pthread_rwlock_destroy(lock)
@@ -306,7 +317,7 @@ static inline void _gnix_ref_init(
 	__COND_FUNC((cond), (lock), rwlock_unlock)
 #ifdef __GNUC__
 #define __PREFETCH(addr, rw, locality) __builtin_prefetch(addr, rw, locality)
-#else 
+#else
 #define __PREFETCH(addr, rw, locality) ((void *) 0)
 #endif
 
