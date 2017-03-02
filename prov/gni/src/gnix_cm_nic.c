@@ -53,37 +53,6 @@
  * Helper functions
  ******************************************************************************/
 
-static void __dgram_set_tag(struct gnix_datagram *d, uint8_t tag)
-{
-
-	_gnix_dgram_pack_buf(d, GNIX_DGRAM_IN_BUF,
-				    &tag, sizeof(uint8_t));
-}
-
-/*
- * we unpack the out tag instead of getting it
- * since we need to pass the partially advanced
- * out buf to the receive callback function
- * associated with the cm_nic instance.
- */
-static void __dgram_unpack_out_tag(struct gnix_datagram *d, uint8_t *tag)
-{
-
-	_gnix_dgram_rewind_buf(d, GNIX_DGRAM_OUT_BUF);
-	_gnix_dgram_unpack_buf(d, GNIX_DGRAM_OUT_BUF,
-				      tag, sizeof(uint8_t));
-}
-
-static void __dgram_get_in_tag(struct gnix_datagram *d, uint8_t *tag)
-{
-
-	_gnix_dgram_rewind_buf(d, GNIX_DGRAM_IN_BUF);
-	_gnix_dgram_unpack_buf(d, GNIX_DGRAM_IN_BUF,
-				      tag, sizeof(uint8_t));
-	_gnix_dgram_rewind_buf(d, GNIX_DGRAM_IN_BUF);
-
-}
-
 static int __process_dgram_w_error(struct gnix_cm_nic *cm_nic,
 				   struct gnix_datagram *dgram,
 				   struct gnix_address peer_address,

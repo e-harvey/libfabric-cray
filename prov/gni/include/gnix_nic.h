@@ -435,7 +435,7 @@ int gnix_nic_alloc(struct gnix_fid_domain *domain,
  * @param[in] nic      pointer to previously allocated gnix_nic struct
  * @return             FI_SUCCESS on success, -FI_ENOSPC no free tx descriptors
  */
-int _gnix_nic_free(struct gnix_nic *nic);
+inline int _gnix_nic_free(struct gnix_nic *nic);
 
 /**
  * @brief progresses control/data operations associated with the nic
@@ -460,6 +460,7 @@ int _gnix_nic_progress(struct gnix_nic *nic);
  * @return             FI_SUCCESS on success, -FI_ENOMEM if insufficient
  *                     memory to allocate remote_id
  */
+inline
 int _gnix_nic_get_rem_id(struct gnix_nic *nic, int *remote_id, void *entry);
 
 /**

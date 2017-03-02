@@ -35,6 +35,7 @@
 #define _GNIX_QUEUE_H
 
 #include <fi_list.h>
+#include "gnix.h"
 
 typedef struct slist_entry *(*alloc_func)(size_t entry_size);
 typedef void (*free_func)(struct slist_entry *item);
@@ -54,14 +55,47 @@ int _gnix_queue_create(struct gnix_queue **queue, alloc_func alloc_item,
 		       size_t entry_count);
 void _gnix_queue_destroy(struct gnix_queue *queue);
 
-struct slist_entry *_gnix_queue_peek(struct gnix_queue *queue);
+static inline
+struct slist_entry *_gnix_queue_peek(struct gnix_queue *queue)
+{
+	return queue->item_list.head;
+}
 
-struct slist_entry *_gnix_queue_get_free(struct gnix_queue *queue);
-struct slist_entry *_gnix_queue_dequeue(struct gnix_queue *queue);
-struct slist_entry *_gnix_queue_dequeue_free(struct gnix_queue *queue);
+static inline
+struct slist_entry *_gnix_queue_get_free(struct gnix_queue *queue)
+{
+	struct slist_entry *ret;
 
-void _gnix_queue_enqueue(struct gnix_queue *queue, struct slist_entry *item);
+	ret = _gnix_queue_dequeue_free(queue);
+	if (!ret)
+		ret = queue->alloc_item(queue->entry_size);
+
+	return ret;
+}
+
+static inline
+struct slist_entry *_gnix_queue_dequeue(struct gnix_queue *queue)
+{
+	return slist_remove_head(&queue->item_list);
+}
+
+static inline
+struct slist_entry *_gnix_queue_dequeue_free(struct gnix_queue *queue)
+{
+	return slist_remove_head(&queue->free_list);
+}
+
+static inline
+void _gnix_queue_enqueue(struct gnix_queue *queue, struct slist_entry *item)
+{
+	gnix_slist_insert_tail(item, &queue->item_list);
+}
+
+static inline
 void _gnix_queue_enqueue_free(struct gnix_queue *queue,
-			      struct slist_entry *item);
+			      struct slist_entry *item)
+{
+	slist_insert_head(item, &queue->free_list);
+}
 
 #endif /* #define _GNIX_QUEUE_H */

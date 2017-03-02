@@ -188,9 +188,10 @@ static void __gnix_msg_unpack_data_into_iov(const struct recv_info_t *dest,
 	}
 }
 
-static void __gnix_msg_pack_data_from_iov(uint64_t dest, size_t dest_len,
-					  const struct iovec *src,
-					  size_t src_cnt)
+static inline
+void __gnix_msg_pack_data_from_iov(uint64_t dest, size_t dest_len,
+				   const struct iovec *src,
+				   size_t src_cnt)
 {
 	int i;
 	size_t cum_len = 0;
@@ -207,8 +208,9 @@ static void __gnix_msg_pack_data_from_iov(uint64_t dest, size_t dest_len,
 	}
 }
 
-static void __gnix_msg_copy_data_to_recv_addr(struct gnix_fab_req *req,
-					      void *data)
+static inline
+void __gnix_msg_copy_data_to_recv_addr(struct gnix_fab_req *req,
+				       void *data)
 {
 	GNIX_TRACE(FI_LOG_EP_DATA, "\n");
 
@@ -232,7 +234,8 @@ static void __gnix_msg_copy_data_to_recv_addr(struct gnix_fab_req *req,
 	}
 }
 
-static struct gnix_fab_req *__gnix_msg_dup_req(struct gnix_fab_req *req)
+static inline
+struct gnix_fab_req *__gnix_msg_dup_req(struct gnix_fab_req *req)
 {
 	struct gnix_fab_req *new_req;
 
@@ -308,7 +311,8 @@ static int __recv_err(struct gnix_fid_ep *ep, void *context, uint64_t flags,
 	return FI_SUCCESS;
 }
 
-static int __gnix_msg_recv_err(struct gnix_fid_ep *ep, struct gnix_fab_req *req)
+static inline
+int __gnix_msg_recv_err(struct gnix_fid_ep *ep, struct gnix_fab_req *req)
 {
 	uint64_t flags = FI_RECV | FI_MSG;
 
@@ -321,7 +325,8 @@ static int __gnix_msg_recv_err(struct gnix_fid_ep *ep, struct gnix_fab_req *req)
 			  GNI_RC_TRANSACTION_ERROR, NULL);
 }
 
-static int __recv_completion(
+static inline
+int __recv_completion(
 		struct gnix_fid_ep *ep,
 		struct gnix_fab_req *req,
 		void *context,
@@ -355,8 +360,8 @@ static int __recv_completion(
 	return FI_SUCCESS;
 }
 
-static inline int __gnix_msg_recv_completion(struct gnix_fid_ep *ep,
-					     struct gnix_fab_req *req)
+static int __gnix_msg_recv_completion(struct gnix_fid_ep *ep,
+				      struct gnix_fab_req *req)
 {
 	uint64_t flags = FI_RECV | FI_MSG;
 
@@ -500,7 +505,8 @@ static int __gnix_rndzv_req_send_fin(void *arg)
 	return gnixu_to_fi_errno(status);
 }
 
-static void __gnix_msg_copy_unaligned_get_data(struct gnix_fab_req *req)
+static inline
+void __gnix_msg_copy_unaligned_get_data(struct gnix_fab_req *req)
 {
 	int head_off, head_len, tail_len;
 	void *addr;
@@ -532,7 +538,8 @@ static void __gnix_msg_copy_unaligned_get_data(struct gnix_fab_req *req)
 	}
 }
 
-static inline void __gnix_msg_iov_cpy_unaligned_head_tail_data(struct gnix_fab_req *req)
+static inline
+void __gnix_msg_iov_cpy_unaligned_head_tail_data(struct gnix_fab_req *req)
 {
 	int i, head_off, head_len, tail_len;
 	void *addr, *recv_addr;
@@ -2325,7 +2332,8 @@ static int __gnix_peek_request(struct gnix_fab_req *req)
 	return ret;
 }
 
-static int __gnix_discard_request(struct gnix_fab_req *req)
+static inline
+int __gnix_discard_request(struct gnix_fab_req *req)
 {
 	int ret = FI_SUCCESS;
 	int rendezvous = !!(req->msg.send_flags & GNIX_MSG_RENDEZVOUS);
@@ -2359,8 +2367,9 @@ static int __gnix_discard_request(struct gnix_fab_req *req)
 	return ret;
 }
 
-static int __gnix_msg_addr_lookup(struct gnix_fid_ep *ep, uint64_t src_addr,
-				  struct gnix_address *gnix_addr)
+static inline
+int __gnix_msg_addr_lookup(struct gnix_fid_ep *ep, uint64_t src_addr,
+			   struct gnix_address *gnix_addr)
 {
 	int ret;
 	struct gnix_fid_av *av;

@@ -919,20 +919,6 @@ struct gnix_fab_req *_gnix_match_tag(
 				context, addr);
 }
 
-struct gnix_fab_req *_gnix_remove_req_by_context(
-		struct gnix_tag_storage *ts,
-		void *context)
-{
-	return ts->ops->remove_req_by_context(ts, context);
-}
-
-void _gnix_remove_tag(
-		struct gnix_tag_storage *ts,
-		struct gnix_fab_req *req)
-{
-	ts->ops->remove_tag_by_req(ts, req);
-}
-
 struct gnix_tag_storage_ops list_ops = {
 		.init = __gnix_tag_list_init,
 		.fini = __gnix_tag_list_fini,

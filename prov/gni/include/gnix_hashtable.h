@@ -217,7 +217,11 @@ int _gnix_ht_remove(gnix_hashtable_t *ht, gnix_ht_key_t key);
  * @return        NULL if the key did not exist in the hash table, or the
  *                entry if the key exists in the hash table
  */
-void *_gnix_ht_lookup(gnix_hashtable_t *ht, gnix_ht_key_t key);
+static inline
+void *_gnix_ht_lookup(gnix_hashtable_t *ht, gnix_ht_key_t key)
+{
+	return ht->ht_ops->lookup(ht, key);
+}
 
 /**
  * Tests to see if the hash table is empty
@@ -225,7 +229,11 @@ void *_gnix_ht_lookup(gnix_hashtable_t *ht, gnix_ht_key_t key);
  * @param ht      pointer to the hash table structure
  * @return        true if the hash table is empty, false if not
  */
-int _gnix_ht_empty(gnix_hashtable_t *ht);
+static inline
+int _gnix_ht_empty(gnix_hashtable_t *ht)
+{
+	return atomic_get(&ht->ht_elements) == 0;
+}
 
 /**
  * Return next element in the hashtable
@@ -233,7 +241,11 @@ int _gnix_ht_empty(gnix_hashtable_t *ht);
  * @param iter    pointer to the hashtable iterator
  * @return        pointer to next element in the hashtable
  */
-void *_gnix_ht_iterator_next(struct gnix_hashtable_iter *iter);
+static inline
+void *_gnix_ht_iterator_next(struct gnix_hashtable_iter *iter)
+{
+	return iter->ht->ht_ops->iter_next(iter);
+}
 
 /* Hastable iteration macros */
 #define ht_lf_for_each(ht, ht_entry)				\

@@ -265,7 +265,8 @@ static size_t __page_count(struct gnix_mbox_alloc_handle *handle)
  *
  * @return Number of mail boxes being allocated.
  */
-static size_t __mbox_count(struct gnix_mbox_alloc_handle *handle)
+static inline
+size_t __mbox_count(struct gnix_mbox_alloc_handle *handle)
 {
 	size_t mbox_count = (__page_count(handle) * handle->page_size) /
 			    handle->mbox_size;
@@ -422,7 +423,8 @@ static int __destroy_slab(struct gnix_mbox_alloc_handle *handle,
  * @return Index into slab which made action evaluate to true.
  * @return -FI_EAGAIN	On failure of action across all slab bitmaps.
  */
-static int __check_bitmap(struct gnix_mbox_alloc_handle *handle,
+static inline
+int __check_bitmap(struct gnix_mbox_alloc_handle *handle,
 			  struct gnix_slab **slab,
 			  int (*action)(gnix_bitmap_t *))
 {
@@ -454,7 +456,8 @@ static int __check_bitmap(struct gnix_mbox_alloc_handle *handle,
  * @return Index into slab which is free.
  * @return -FI_EAGAIN	Upon not finding any free memory.
  */
-static int __find_free(struct gnix_mbox_alloc_handle *handle,
+static inline
+int __find_free(struct gnix_mbox_alloc_handle *handle,
 		       struct gnix_slab **slab)
 {
 	return __check_bitmap(handle, slab, _gnix_find_first_zero_bit);
@@ -470,7 +473,8 @@ static int __find_free(struct gnix_mbox_alloc_handle *handle,
  * @return Index into slab which is used.
  * @return -FI_EAGAIN	Upon not finding any used memory.
  */
-static int __find_used(struct gnix_mbox_alloc_handle *handle,
+static inline
+int __find_used(struct gnix_mbox_alloc_handle *handle,
 		       struct gnix_slab **slab)
 {
 	return __check_bitmap(handle, slab, _gnix_find_first_set_bit);

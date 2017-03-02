@@ -468,9 +468,13 @@ struct gnix_fab_req *_gnix_match_tag(
 		void *context,
 		struct gnix_address *addr);
 
+static inline
 struct gnix_fab_req *_gnix_remove_req_by_context(
 		struct gnix_tag_storage *ts,
-		void *context);
+		void *context)
+{
+	return ts->ops->remove_req_by_context(ts, context);
+}
 
 /**
  * @brief removes a gnix_fab_req from the tag storage list element
@@ -483,9 +487,13 @@ struct gnix_fab_req *_gnix_remove_req_by_context(
  * @note This is similar to _gnix_match_tag with the FI_PEEK flag not set
  *       but it does not need to search the list to remove the request
  */
+static inline
 void _gnix_remove_tag(
 		struct gnix_tag_storage *ts,
-		struct gnix_fab_req *req);
+		struct gnix_fab_req *req)
+{
+	ts->ops->remove_tag_by_req(ts, req);
+}
 
 /* external symbols */
 

@@ -53,6 +53,7 @@ int _gnix_resolve_name(IN const char *node, IN const char *service,
 		       IN uint64_t flags, INOUT struct gnix_ep_name
 		       *resolved_addr);
 
+inline
 int _gnix_src_addr(struct gnix_ep_name *resolved_addr);
 
 #endif /* _GNIX_NAMESERVER_H_ */

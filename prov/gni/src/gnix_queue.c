@@ -31,7 +31,6 @@
  */
 
 #include <stdlib.h>
-#include "gnix.h"
 #include "gnix_queue.h"
 
 int _gnix_queue_create(struct gnix_queue **queue, alloc_func alloc_item,
@@ -93,41 +92,4 @@ void _gnix_queue_destroy(struct gnix_queue *queue)
 		queue->free_item(temp);
 
 	free(queue);
-}
-
-struct slist_entry *_gnix_queue_peek(struct gnix_queue *queue)
-{
-	return queue->item_list.head;
-}
-
-struct slist_entry *_gnix_queue_get_free(struct gnix_queue *queue)
-{
-	struct slist_entry *ret;
-
-	ret = _gnix_queue_dequeue_free(queue);
-	if (!ret)
-		ret = queue->alloc_item(queue->entry_size);
-
-	return ret;
-}
-
-struct slist_entry *_gnix_queue_dequeue(struct gnix_queue *queue)
-{
-	return slist_remove_head(&queue->item_list);
-}
-
-struct slist_entry *_gnix_queue_dequeue_free(struct gnix_queue *queue)
-{
-	return slist_remove_head(&queue->free_list);
-}
-
-void _gnix_queue_enqueue(struct gnix_queue *queue, struct slist_entry *item)
-{
-	gnix_slist_insert_tail(item, &queue->item_list);
-}
-
-void _gnix_queue_enqueue_free(struct gnix_queue *queue,
-			      struct slist_entry *item)
-{
-	slist_insert_head(item, &queue->free_list);
 }

@@ -429,8 +429,8 @@ void _gnix_nic_txd_err_inject(struct gnix_nic *nic,
 	slist_insert_tail(&txd->err_list, &nic->err_txds);
 }
 
-static int __gnix_nic_txd_err_get(struct gnix_nic *nic,
-				  struct gnix_tx_descriptor **txd)
+static inline int __gnix_nic_txd_err_get(struct gnix_nic *nic,
+					 struct gnix_tx_descriptor **txd)
 {
 	struct slist_entry *list_entry;
 	struct gnix_tx_descriptor *txd_p;
@@ -603,7 +603,7 @@ int _gnix_nic_free_rem_id(struct gnix_nic *nic, int remote_id)
  * with GNI nic being used by this VC.  Using a bitmap to expedite
  * scanning vc's in the case of a GNI CQ overrun.
  */
-
+inline
 int _gnix_nic_get_rem_id(struct gnix_nic *nic, int *remote_id, void *entry)
 {
 	int ret = FI_SUCCESS;
@@ -696,7 +696,7 @@ err:
 /*
  * clean up the tx descs free list
  */
-static void __gnix_nic_tx_freelist_destroy(struct gnix_nic *nic)
+static inline void __gnix_nic_tx_freelist_destroy(struct gnix_nic *nic)
 {
 	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
 
@@ -868,7 +868,7 @@ err:
 	free(nic);
 }
 
-int _gnix_nic_free(struct gnix_nic *nic)
+inline int _gnix_nic_free(struct gnix_nic *nic)
 {
 	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
 

@@ -57,7 +57,8 @@ static struct fi_ops gnix_fi_eq_ops;
  * Helper functions.
  ******************************************************************************/
 
-static void gnix_eq_cleanup_err_bufs(struct gnix_fid_eq *eq, int free_all)
+static inline
+void gnix_eq_cleanup_err_bufs(struct gnix_fid_eq *eq, int free_all)
 {
 	struct gnix_eq_err_buf *ebuf, *tmp;
 

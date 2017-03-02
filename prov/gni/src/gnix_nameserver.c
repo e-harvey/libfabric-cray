@@ -414,6 +414,7 @@ err:
 	return ret;
 }
 
+inline
 int _gnix_src_addr(struct gnix_ep_name *resolved_addr)
 {
 	gni_return_t status;

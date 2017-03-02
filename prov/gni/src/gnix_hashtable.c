@@ -723,16 +723,6 @@ int _gnix_ht_remove(gnix_hashtable_t *ht, gnix_ht_key_t key)
 	return ret;
 }
 
-void *_gnix_ht_lookup(gnix_hashtable_t *ht, gnix_ht_key_t key)
-{
-	return ht->ht_ops->lookup(ht, key);
-}
-
-int _gnix_ht_empty(gnix_hashtable_t *ht)
-{
-	return atomic_get(&ht->ht_elements) == 0;
-}
-
 void *__gnix_ht_lf_iter_next(struct gnix_hashtable_iter *iter)
 {
 	gnix_ht_entry_t *ht_entry;
@@ -822,11 +812,6 @@ void *__gnix_ht_lk_iter_next(struct gnix_hashtable_iter *iter)
 	rwlock_unlock(&iter->ht->ht_lock);
 
 	return NULL;
-}
-
-void *_gnix_ht_iterator_next(struct gnix_hashtable_iter *iter)
-{
-	return iter->ht->ht_ops->iter_next(iter);
 }
 
 static gnix_hashtable_ops_t __gnix_lockless_ht_ops = {
