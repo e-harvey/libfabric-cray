@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017 Cray Inc. All rights reserved.
- * Copyright (c) 2015-2016 Los Alamos National Security, LLC.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
  *                         All rights reserved.
  *
  * This software is available to you under a choice of one of two
@@ -408,6 +408,7 @@ int _gnix_ep_init_vc(struct gnix_fid_ep *ep_priv)
 	int ret;
 	gnix_hashtable_attr_t gnix_ht_attr;
 	gnix_vec_attr_t gnix_vec_attr;
+	struct gnix_fid_domain *domain = ep_priv->domain;
 
 	if (ep_priv->av->type == FI_AV_TABLE) {
 		/* Use array to store EP VCs when using FI_AV_TABLE. */
@@ -416,10 +417,10 @@ int _gnix_ep_init_vc(struct gnix_fid_ep *ep_priv)
 			return -FI_ENOMEM;
 
 		gnix_vec_attr.vec_initial_size =
-				ep_priv->domain->params.ct_init_size;
-		/* TODO: ep_priv->domain->params.ct_max_size; */
+				domain->params.ct_init_size;
+		/* TODO: domain->params.ct_max_size; */
 		gnix_vec_attr.vec_maximum_size = 1024*1024;
-		gnix_vec_attr.vec_increase_step = ep_priv->domain->params.ct_step;
+		gnix_vec_attr.vec_increase_step = domain->params.ct_step;
 		gnix_vec_attr.vec_increase_type = GNIX_VEC_INCREASE_MULT;
 		gnix_vec_attr.vec_internal_locking = GNIX_VEC_UNLOCKED;
 
@@ -439,10 +440,10 @@ int _gnix_ep_init_vc(struct gnix_fid_ep *ep_priv)
 			return -FI_ENOMEM;
 
 		gnix_ht_attr.ht_initial_size =
-				ep_priv->domain->params.ct_init_size;
+				domain->params.ct_init_size;
 		gnix_ht_attr.ht_maximum_size =
-				ep_priv->domain->params.ct_max_size;
-		gnix_ht_attr.ht_increase_step = ep_priv->domain->params.ct_step;
+				domain->params.ct_max_size;
+		gnix_ht_attr.ht_increase_step = domain->params.ct_step;
 		gnix_ht_attr.ht_increase_type = GNIX_HT_INCREASE_MULT;
 		gnix_ht_attr.ht_collision_thresh = 500;
 		gnix_ht_attr.ht_hash_seed = 0xdeadbeefbeefdead;
@@ -1018,8 +1019,8 @@ __gnix_fabric_ops_native_amo(struct fid_ep *ep, const void *buf, size_t count,
 
 	if (!ep)
 		return -FI_EINVAL;
-	if ((req_type < 0) || (req_type > GNIX_FAB_RQ_MAX_TYPES) || 
-		(req_type >= GNIX_FAB_RQ_END_NON_NATIVE && 
+	if ((req_type < 0) || (req_type > GNIX_FAB_RQ_MAX_TYPES) ||
+		(req_type >= GNIX_FAB_RQ_END_NON_NATIVE &&
 		 req_type < GNIX_FAB_RQ_START_NATIVE))
 		return -FI_EINVAL;
 

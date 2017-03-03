@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2015-2016 Cray Inc.  All rights reserved.
- * Copyright (c) 2015-2017 Los Alamos National Security, LLC. All rights reserved.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
+ *                         All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -175,15 +176,16 @@ static int __gnix_ep_connresp(struct gnix_fid_ep *ep,
 {
 	int ret = FI_SUCCESS;
 	struct fi_eq_cm_entry *eq_entry;
+	struct gnix_vc *vc = ep->vc;
 	int eqe_size;
 
 	switch (resp->cmd) {
 	case GNIX_PEP_SOCK_RESP_ACCEPT:
-		ep->vc->peer_caps = resp->peer_caps;
-		ep->vc->peer_id = resp->vc_id;
+		vc->peer_caps = resp->peer_caps;
+		vc->peer_id = resp->vc_id;
 
 		/* Initialize the GNI connection. */
-		ret = _gnix_vc_smsg_init(ep->vc, resp->vc_id,
+		ret = _gnix_vc_smsg_init(vc, resp->vc_id,
 					 &resp->vc_mbox_attr,
 					 &resp->cq_irq_mdh);
 		if (ret != FI_SUCCESS) {
@@ -193,7 +195,7 @@ static int __gnix_ep_connresp(struct gnix_fid_ep *ep,
 			return ret;
 		}
 
-		ep->vc->conn_state = GNIX_VC_CONNECTED;
+		vc->conn_state = GNIX_VC_CONNECTED;
 		ep->conn_state = GNIX_EP_CONNECTED;
 
 		/* Notify user that this side is connected. */
@@ -217,10 +219,10 @@ static int __gnix_ep_connresp(struct gnix_fid_ep *ep,
 		close(ep->conn_fd);
 		ep->conn_fd = -1;
 
-		_gnix_mbox_free(ep->vc->smsg_mbox);
-		ep->vc->smsg_mbox = NULL;
+		_gnix_mbox_free(vc->smsg_mbox);
+		vc->smsg_mbox = NULL;
 
-		_gnix_vc_destroy(ep->vc);
+		_gnix_vc_destroy(vc);
 		ep->vc = NULL;
 
 		ep->conn_state = GNIX_EP_UNCONNECTED;
@@ -308,6 +310,7 @@ DIRECT_FN STATIC int gnix_connect(struct fid_ep *ep, const void *addr,
 	struct gnix_vc *vc;
 	struct gnix_mbox *mbox = NULL;
 	struct gnix_av_addr_entry av_entry;
+	struct fi_info *info;
 
 	if (!ep || !addr || (paramlen && !param) ||
 	    paramlen > GNIX_CM_DATA_MAX_SIZE)
@@ -316,6 +319,7 @@ DIRECT_FN STATIC int gnix_connect(struct fid_ep *ep, const void *addr,
 	ep_priv = container_of(ep, struct gnix_fid_ep, ep_fid.fid);
 
 	COND_ACQUIRE(ep_priv->requires_lock, &ep_priv->vc_lock);
+	info = ep_priv->info;
 
 	if (ep_priv->conn_state != GNIX_EP_UNCONNECTED) {
 		ret = -FI_EINVAL;
@@ -372,7 +376,7 @@ DIRECT_FN STATIC int gnix_connect(struct fid_ep *ep, const void *addr,
 		goto err_connect;
 	}
 
-	req.info = *ep_priv->info;
+	req.info = *info;
 
 	/* Note addrs are swapped. */
 	memcpy(&req.dest_addr, (void *)&ep_priv->src_addr,
@@ -380,16 +384,16 @@ DIRECT_FN STATIC int gnix_connect(struct fid_ep *ep, const void *addr,
 	memcpy(&ep_priv->dest_addr, addr, sizeof(ep_priv->dest_addr));
 	memcpy(&req.src_addr, addr, sizeof(req.src_addr));
 
-	if (ep_priv->info->tx_attr)
-		req.tx_attr = *ep_priv->info->tx_attr;
-	if (ep_priv->info->rx_attr)
-		req.rx_attr = *ep_priv->info->rx_attr;
-	if (ep_priv->info->ep_attr)
-		req.ep_attr = *ep_priv->info->ep_attr;
-	if (ep_priv->info->domain_attr)
-		req.domain_attr = *ep_priv->info->domain_attr;
-	if (ep_priv->info->fabric_attr)
-		req.fabric_attr = *ep_priv->info->fabric_attr;
+	if (info->tx_attr)
+		req.tx_attr = *info->tx_attr;
+	if (info->rx_attr)
+		req.rx_attr = *info->rx_attr;
+	if (info->ep_attr)
+		req.ep_attr = *info->ep_attr;
+	if (info->domain_attr)
+		req.domain_attr = *info->domain_attr;
+	if (info->fabric_attr)
+		req.fabric_attr = *info->fabric_attr;
 
 	req.fabric_attr.fabric = NULL;
 	req.domain_attr.domain = NULL;

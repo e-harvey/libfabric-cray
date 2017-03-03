@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 Los Alamos National Security, LLC.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2016 Cray Inc.  All rights reserved.
  *
@@ -289,15 +289,16 @@ static int __gnix_vec_lf_at(gnix_vector_t *vec, void **element, gnix_vec_index_t
 gnix_vec_entry_t *__gnix_vec_lf_iter_next(struct gnix_vector_iter *iter)
 {
 	uint32_t i;
+	struct gnix_vector *vec = iter->vec;
 
-	for (i = iter->cur_idx; i < iter->vec->attr.cur_size; i++) {
-		if (iter->vec->vector[i]) {
+	for (i = iter->cur_idx; i < vec->attr.cur_size; i++) {
+		if (vec->vector[i]) {
 			iter->cur_idx = i + 1;
-			return iter->vec->vector[i];
+			return vec->vector[i];
 		}
 	}
 
-	iter->cur_idx = iter->vec->attr.cur_size;
+	iter->cur_idx = vec->attr.cur_size;
 	return NULL;
 }
 
@@ -431,22 +432,23 @@ gnix_vec_entry_t *__gnix_vec_lk_iter_next(struct gnix_vector_iter *iter)
 {
 	uint32_t i;
 	gnix_vec_entry_t *entry;
+	struct gnix_vector *vec = iter->vec;
 
-	rwlock_rdlock(&iter->vec->lock);
+	rwlock_rdlock(&vec->lock);
 
-	for (i = iter->cur_idx; i < iter->vec->attr.cur_size; i++) {
-		if (iter->vec->vector[i]) {
+	for (i = iter->cur_idx; i < vec->attr.cur_size; i++) {
+		if (vec->vector[i]) {
 			iter->cur_idx = i + 1;
-			entry = iter->vec->vector[i];
-			rwlock_unlock(&iter->vec->lock);
+			entry = vec->vector[i];
+			rwlock_unlock(&vec->lock);
 
 			return entry;
 		}
 	}
 
-	iter->cur_idx = iter->vec->attr.cur_size;
+	iter->cur_idx = vec->attr.cur_size;
 
-	rwlock_unlock(&iter->vec->lock);
+	rwlock_unlock(&vec->lock);
 
 	return NULL;
 }

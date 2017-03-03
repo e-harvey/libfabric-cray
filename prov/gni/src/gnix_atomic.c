@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Cray Inc. All rights reserved.
- * Copyright (c) 2015-2016 Los Alamos National Security, LLC. All rights reserved.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
+ *                         All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -273,9 +274,10 @@ static int __gnix_amo_txd_complete(void *arg, gni_return_t tx_status)
 {
 	struct gnix_tx_descriptor *txd = (struct gnix_tx_descriptor *)arg;
 	struct gnix_fab_req *req = txd->req;
+	struct gnix_fid_ep *ep = req->vc->ep;
 	int rc = FI_SUCCESS;
 
-	_gnix_nic_tx_free(req->vc->ep->nic, txd);
+	_gnix_nic_tx_free(ep->nic, txd);
 
 	if (tx_status != GNI_RC_SUCCESS) {
 		return __gnix_amo_post_err(req, FI_ECANCELED);
@@ -287,7 +289,7 @@ static int __gnix_amo_txd_complete(void *arg, gni_return_t tx_status)
 		_gnix_vc_queue_work_req(req);
 	} else {
 		/* complete request */
-		rc = __gnix_amo_send_completion(req->vc->ep, req);
+		rc = __gnix_amo_send_completion(ep, req);
 		if (rc != FI_SUCCESS)
 			GNIX_WARN(FI_LOG_EP_DATA,
 				  "__gnix_amo_send_completion() failed: %d\n",

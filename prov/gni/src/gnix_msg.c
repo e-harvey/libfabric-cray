@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2015-2016 Cray Inc. All rights reserved.
- * Copyright (c) 2015-2016 Los Alamos National Security, LLC. All rights reserved.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
+ *                         All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -636,6 +637,7 @@ static int __gnix_rndzv_req_complete(void *arg, gni_return_t tx_status)
 {
 	struct gnix_tx_descriptor *txd = (struct gnix_tx_descriptor *)arg;
 	struct gnix_fab_req *req = txd->req;
+	struct gnix_fid_ep *ep = req->gnix_ep;
 	int ret;
 
 	if (req->msg.recv_flags & GNIX_MSG_GET_TAIL) {
@@ -653,7 +655,7 @@ static int __gnix_rndzv_req_complete(void *arg, gni_return_t tx_status)
 		req->msg.status |= tx_status;
 
 		if (atomic_dec(&req->msg.outstanding_txds) == 1) {
-			_gnix_nic_tx_free(req->gnix_ep->nic, txd);
+			_gnix_nic_tx_free(ep->nic, txd);
 			GNIX_INFO(FI_LOG_EP_DATA,
 				  "Received first RDMA chain TXD, req: %p\n",
 				  req);
@@ -663,10 +665,10 @@ static int __gnix_rndzv_req_complete(void *arg, gni_return_t tx_status)
 		tx_status = req->msg.status;
 	}
 
-	_gnix_nic_tx_free(req->gnix_ep->nic, txd);
+	_gnix_nic_tx_free(ep->nic, txd);
 
 	if (tx_status != GNI_RC_SUCCESS) {
-		if (GNIX_EP_RDM(req->gnix_ep->type) &&
+		if (GNIX_EP_RDM(ep->type) &&
 			_gnix_req_replayable(req)) {
 			req->tx_failures++;
 			GNIX_INFO(FI_LOG_EP_DATA,
@@ -674,10 +676,10 @@ static int __gnix_rndzv_req_complete(void *arg, gni_return_t tx_status)
 			return _gnix_vc_queue_work_req(req);
 		}
 
-		if (!GNIX_EP_DGM(req->gnix_ep->type)) {
+		if (!GNIX_EP_DGM(ep->type)) {
 			GNIX_WARN(FI_LOG_EP_DATA,
 				  "Dropping failed request: %p\n", req);
-			ret = __gnix_msg_send_err(req->gnix_ep,
+			ret = __gnix_msg_send_err(ep,
 						  req);
 			if (ret != FI_SUCCESS)
 				GNIX_WARN(FI_LOG_EP_DATA,
@@ -720,6 +722,7 @@ static int __gnix_rndzv_iov_req_complete(void *arg, gni_return_t tx_status)
 {
 	struct gnix_tx_descriptor *txd = (struct gnix_tx_descriptor *)arg;
 	struct gnix_fab_req *req = txd->req;
+	struct gnix_fid_ep *ep = req->gnix_ep;
 	int i, ret = FI_SUCCESS;
 
 	GNIX_TRACE(FI_LOG_EP_DATA, "\n");
@@ -744,7 +747,7 @@ static int __gnix_rndzv_iov_req_complete(void *arg, gni_return_t tx_status)
 
 		if (req->msg.status != FI_SUCCESS) {
 
-			if (GNIX_EP_RDM(req->gnix_ep->type) &&
+			if (GNIX_EP_RDM(ep->type) &&
 				_gnix_req_replayable(req)) {
 				req->tx_failures++;
 				/* Build and re-tx the entire iov request if the
@@ -753,7 +756,7 @@ static int __gnix_rndzv_iov_req_complete(void *arg, gni_return_t tx_status)
 				return _gnix_vc_queue_work_req(req);
 			}
 
-			if (!GNIX_EP_DGM(req->gnix_ep->type)) {
+			if (!GNIX_EP_DGM(ep->type)) {
 				GNIX_WARN(FI_LOG_EP_DATA,
 					  "Dropping failed request: %p\n", req);
 				ret = __gnix_msg_send_err(req->gnix_ep,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 Los Alamos National Security, LLC.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2015-2017 Cray Inc. All rights reserved.
  *
@@ -547,6 +547,7 @@ DIRECT_FN int gnix_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 	uint8_t ptag;
 	uint32_t cookie;
 	struct gnix_fid_fabric *fabric_priv;
+	struct fi_domain_attr *domain_attr;
 
 	GNIX_TRACE(FI_LOG_DOMAIN, "\n");
 
@@ -638,11 +639,12 @@ DIRECT_FN int gnix_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 	domain->domain_fid.ops = &gnix_domain_ops;
 	domain->domain_fid.mr = &gnix_domain_mr_ops;
 
-	domain->control_progress = info->domain_attr->control_progress;
-	domain->data_progress = info->domain_attr->data_progress;
-	domain->thread_model = info->domain_attr->threading;
+	domain_attr = info->domain_attr;
+	domain->control_progress = domain_attr->control_progress;
+	domain->data_progress = domain_attr->data_progress;
+	domain->thread_model = domain_attr->threading;
 	domain->mr_is_init = 0;
-	domain->mr_iov_limit = info->domain_attr->mr_iov_limit;
+	domain->mr_iov_limit = domain_attr->mr_iov_limit;
 
 	fastlock_init(&domain->cm_nic_lock);
 
@@ -688,7 +690,7 @@ static struct fi_ops_mr gnix_domain_mr_ops = {
 	.size = sizeof(struct fi_ops_mr),
 	.reg = gnix_mr_reg,
 	.regv = gnix_mr_regv,
-	.regattr = gnix_mr_regattr, 
+	.regattr = gnix_mr_regattr,
 };
 
 static struct fi_ops_domain gnix_domain_ops = {

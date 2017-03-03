@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Cray Inc. All rights reserved.
- * Copyright (c) 2015-2016 Los Alamos National Security, LLC.
+ * Copyright (c) 2015-2017 Los Alamos National Security, LLC.
  *                         All rights reserved.
  *
  * This software is available to you under a choice of one of two
@@ -516,6 +516,7 @@ int _gnix_vc_smsg_init(struct gnix_vc *vc, int peer_id,
 	struct gnix_fid_ep *ep;
 	struct gnix_fid_domain *dom;
 	struct gnix_mbox *mbox = NULL;
+	struct gnix_nic *nic;
 	gni_smsg_attr_t local_smsg_attr;
 	gni_return_t __attribute__((unused)) status;
 	ssize_t __attribute__((unused)) len;
@@ -534,9 +535,11 @@ int _gnix_vc_smsg_init(struct gnix_vc *vc, int peer_id,
 	mbox = vc->smsg_mbox;
 	assert (mbox);
 
+	nic = ep->nic;
+
 	local_smsg_attr.msg_type = GNI_SMSG_TYPE_MBOX_AUTO_RETRANSMIT;
 	local_smsg_attr.msg_buffer = mbox->base;
-	local_smsg_attr.buff_size =  vc->ep->nic->mem_per_mbox;
+	local_smsg_attr.buff_size =  nic->mem_per_mbox;
 	local_smsg_attr.mem_hndl = *mbox->memory_handle;
 	local_smsg_attr.mbox_offset = (uint64_t)mbox->offset;
 	local_smsg_attr.mbox_maxcredit = dom->params.mbox_maxcredit;
@@ -546,10 +549,10 @@ int _gnix_vc_smsg_init(struct gnix_vc *vc, int peer_id,
 	 *  now build the SMSG connection
 	 */
 
-	COND_ACQUIRE(ep->nic->requires_lock, &ep->nic->lock);
+	COND_ACQUIRE(nic->requires_lock, &nic->lock);
 
-	status = GNI_EpCreate(ep->nic->gni_nic_hndl,
-			      ep->nic->tx_cq,
+	status = GNI_EpCreate(nic->gni_nic_hndl,
+			      nic->tx_cq,
 			      &vc->gni_ep);
 	if (status != GNI_RC_SUCCESS) {
 		GNIX_WARN(FI_LOG_EP_CTRL,
@@ -592,12 +595,12 @@ int _gnix_vc_smsg_init(struct gnix_vc *vc, int peer_id,
 	if (peer_irq_mem_hndl != NULL)
 		vc->peer_irq_mem_hndl = *peer_irq_mem_hndl;
 
-	COND_RELEASE(ep->nic->requires_lock, &ep->nic->lock);
+	COND_RELEASE(nic->requires_lock, &nic->lock);
 	return ret;
 err1:
 	GNI_EpDestroy(vc->gni_ep);
 err:
-	COND_RELEASE(ep->nic->requires_lock, &ep->nic->lock);
+	COND_RELEASE(nic->requires_lock, &nic->lock);
 	return ret;
 }
 
@@ -608,6 +611,7 @@ static int __gnix_vc_connect_to_self(struct gnix_vc *vc)
 	struct gnix_fid_ep *ep = NULL;
 	struct gnix_cm_nic *cm_nic = NULL;
 	struct gnix_mbox *mbox = NULL;
+	struct gnix_nic *nic;
 	gni_smsg_attr_t smsg_mbox_attr;
 	xpmem_apid_t peer_apid;
 	xpmem_segid_t my_segid;
@@ -626,12 +630,14 @@ static int __gnix_vc_connect_to_self(struct gnix_vc *vc)
 	if (dom == NULL)
 		return -FI_EINVAL;
 
+	nic = ep->nic;
+
 	assert(vc->conn_state == GNIX_VC_CONN_NONE);
 	vc->conn_state = GNIX_VC_CONNECTING;
 
 	assert(vc->smsg_mbox == NULL);
 
-	ret = _gnix_mbox_alloc(vc->ep->nic->mbox_hndl, &mbox);
+	ret = _gnix_mbox_alloc(nic->mbox_hndl, &mbox);
 	if (ret != FI_SUCCESS) {
 		GNIX_WARN(FI_LOG_EP_DATA,
 			  "_gnix_mbox_alloc returned %s\n",
@@ -642,7 +648,7 @@ static int __gnix_vc_connect_to_self(struct gnix_vc *vc)
 
 	smsg_mbox_attr.msg_type = GNI_SMSG_TYPE_MBOX_AUTO_RETRANSMIT;
 	smsg_mbox_attr.msg_buffer = mbox->base;
-	smsg_mbox_attr.buff_size =  vc->ep->nic->mem_per_mbox;
+	smsg_mbox_attr.buff_size =  nic->mem_per_mbox;
 	smsg_mbox_attr.mem_hndl = *mbox->memory_handle;
 	smsg_mbox_attr.mbox_offset = (uint64_t)mbox->offset;
 	smsg_mbox_attr.mbox_maxcredit = dom->params.mbox_maxcredit;
@@ -678,7 +684,7 @@ static int __gnix_vc_connect_to_self(struct gnix_vc *vc)
 
 	vc->peer_id = vc->vc_id;
 	vc->peer_caps = ep->caps;
-	vc->peer_irq_mem_hndl = ep->nic->irq_mem_hndl;
+	vc->peer_irq_mem_hndl = nic->irq_mem_hndl;
 
 	ret = _gnix_vc_schedule(vc);
 	if (ret != FI_SUCCESS)
@@ -692,7 +698,7 @@ static int __gnix_vc_connect_to_self(struct gnix_vc *vc)
 err_mbox_init:
 	_gnix_mbox_free(vc->smsg_mbox);
 	vc->smsg_mbox = NULL;
-	
+
 	return ret;
 }
 
@@ -1106,6 +1112,7 @@ static int __gnix_vc_conn_ack_prog_fn(void *data, int *complete_ptr)
 	struct gnix_fid_ep *ep = NULL;
 	struct gnix_fid_domain *dom = NULL;
 	struct gnix_cm_nic *cm_nic = NULL;
+	struct gnix_nic *nic;
 	xpmem_segid_t my_segid;
 	char sbuf[GNIX_CM_NIC_MAX_MSG_SIZE] = {0};
 	xpmem_apid_t peer_apid;
@@ -1132,6 +1139,8 @@ static int __gnix_vc_conn_ack_prog_fn(void *data, int *complete_ptr)
 	if (cm_nic == NULL)
 		return -FI_EINVAL;
 
+	nic = ep->nic;
+
 	COND_ACQUIRE(ep->requires_lock, &ep->vc_lock);
 
 	/*
@@ -1152,7 +1161,7 @@ static int __gnix_vc_conn_ack_prog_fn(void *data, int *complete_ptr)
 	 */
 
 	if (vc->smsg_mbox == NULL) {
-		ret = _gnix_mbox_alloc(ep->nic->mbox_hndl,
+		ret = _gnix_mbox_alloc(nic->mbox_hndl,
 				       &mbox);
 		if (ret == FI_SUCCESS)
 			vc->smsg_mbox = mbox;
@@ -1168,7 +1177,7 @@ static int __gnix_vc_conn_ack_prog_fn(void *data, int *complete_ptr)
 
 	smsg_mbox_attr.msg_type = GNI_SMSG_TYPE_MBOX_AUTO_RETRANSMIT;
 	smsg_mbox_attr.msg_buffer = mbox->base;
-	smsg_mbox_attr.buff_size =  ep->nic->mem_per_mbox;
+	smsg_mbox_attr.buff_size =  nic->mem_per_mbox;
 	smsg_mbox_attr.mem_hndl = *mbox->memory_handle;
 	smsg_mbox_attr.mbox_offset = (uint64_t)mbox->offset;
 	smsg_mbox_attr.mbox_maxcredit = dom->params.mbox_maxcredit;
@@ -1190,7 +1199,7 @@ static int __gnix_vc_conn_ack_prog_fn(void *data, int *complete_ptr)
 				 (uint64_t)vc,
 				 vc->vc_id,
 				 &smsg_mbox_attr,
-				 &ep->nic->irq_mem_hndl,
+				 &nic->irq_mem_hndl,
 				 ep->caps,
 				 my_segid);
 
@@ -1273,6 +1282,7 @@ static int __gnix_vc_conn_req_prog_fn(void *data, int *complete_ptr)
 	struct gnix_fid_ep *ep = NULL;
 	struct gnix_fid_domain *dom = NULL;
 	struct gnix_cm_nic *cm_nic = NULL;
+	struct gnix_nic *nic;
 	xpmem_segid_t my_segid;
 	char sbuf[GNIX_CM_NIC_MAX_MSG_SIZE] = {0};
 
@@ -1290,6 +1300,8 @@ static int __gnix_vc_conn_req_prog_fn(void *data, int *complete_ptr)
 	if (cm_nic == NULL)
 		return -FI_EINVAL;
 
+	nic = ep->nic;
+
 	COND_ACQUIRE(ep->requires_lock, &ep->vc_lock);
 
 	if ((vc->conn_state == GNIX_VC_CONNECTING) ||
@@ -1303,7 +1315,7 @@ static int __gnix_vc_conn_req_prog_fn(void *data, int *complete_ptr)
 	 */
 
 	if (vc->smsg_mbox == NULL) {
-		ret = _gnix_mbox_alloc(vc->ep->nic->mbox_hndl,
+		ret = _gnix_mbox_alloc(nic->mbox_hndl,
 				       &mbox);
 		if (ret == FI_SUCCESS)
 			vc->smsg_mbox = mbox;
@@ -1319,7 +1331,7 @@ static int __gnix_vc_conn_req_prog_fn(void *data, int *complete_ptr)
 
 	smsg_mbox_attr.msg_type = GNI_SMSG_TYPE_MBOX_AUTO_RETRANSMIT;
 	smsg_mbox_attr.msg_buffer = mbox->base;
-	smsg_mbox_attr.buff_size =  vc->ep->nic->mem_per_mbox;
+	smsg_mbox_attr.buff_size =  nic->mem_per_mbox;
 	smsg_mbox_attr.mem_hndl = *mbox->memory_handle;
 	smsg_mbox_attr.mbox_offset = (uint64_t)mbox->offset;
 	smsg_mbox_attr.mbox_maxcredit = dom->params.mbox_maxcredit;
@@ -1352,7 +1364,7 @@ static int __gnix_vc_conn_req_prog_fn(void *data, int *complete_ptr)
 				vc->vc_id,
 				(uint64_t)vc,
 				&smsg_mbox_attr,
-				&ep->nic->irq_mem_hndl,
+				&nic->irq_mem_hndl,
 				ep->caps,
 				my_segid);
 
@@ -1719,7 +1731,7 @@ int _gnix_vc_connect(struct gnix_vc *vc)
 
 /*
  * TODO: this is very simple right now and will need more
- * work to propertly disconnect
+ * work to properly disconnect
  */
 
 int _gnix_vc_disconnect(struct gnix_vc *vc)
@@ -1804,6 +1816,7 @@ int _gnix_vc_dequeue_smsg(struct gnix_vc *vc)
 static int __gnix_vc_rx_progress(struct gnix_vc *vc)
 {
 	int ret;
+	struct gnix_nic *nic = vc->ep->nic;
 
 	ret = __gnix_vc_connected(vc);
 	if (ret) {
@@ -1814,9 +1827,9 @@ static int __gnix_vc_rx_progress(struct gnix_vc *vc)
 	}
 
 	/* Process pending RXs */
-	COND_ACQUIRE(vc->ep->nic->requires_lock, &vc->ep->nic->lock);
+	COND_ACQUIRE(nic->requires_lock, &nic->lock);
 	ret = _gnix_vc_dequeue_smsg(vc);
-	COND_RELEASE(vc->ep->nic->requires_lock, &vc->ep->nic->lock);
+	COND_RELEASE(nic->requires_lock, &nic->lock);
 
 	if (ret != FI_SUCCESS) {
 		/* We didn't finish processing RXs.  Low memory likely.
@@ -1894,11 +1907,12 @@ static int __gnix_vc_work_schedule(struct gnix_vc *vc)
 int _gnix_vc_queue_work_req(struct gnix_fab_req *req)
 {
 	struct gnix_vc *vc = req->vc;
+	struct gnix_fid_ep *ep = vc->ep;
 
-	COND_ACQUIRE(vc->ep->requires_lock, &vc->work_queue_lock);
+	COND_ACQUIRE(ep->requires_lock, &vc->work_queue_lock);
 	dlist_insert_tail(&req->dlist, &vc->work_queue);
 	__gnix_vc_work_schedule(vc);
-	COND_RELEASE(vc->ep->requires_lock, &vc->work_queue_lock);
+	COND_RELEASE(ep->requires_lock, &vc->work_queue_lock);
 
 	return FI_SUCCESS;
 }
@@ -1908,15 +1922,16 @@ static int __gnix_vc_push_work_reqs(struct gnix_vc *vc)
 {
 	int ret, fi_rc = FI_SUCCESS;
 	struct gnix_fab_req *req;
+	struct gnix_fid_ep *ep = vc->ep;
 
 	while (fi_rc == FI_SUCCESS) {
-		COND_ACQUIRE(vc->ep->requires_lock, &vc->work_queue_lock);
+		COND_ACQUIRE(ep->requires_lock, &vc->work_queue_lock);
 		req = dlist_first_entry(&vc->work_queue,
 					struct gnix_fab_req,
 					dlist);
 		if (req)
 			dlist_remove_init(&req->dlist);
-		COND_RELEASE(vc->ep->requires_lock, &vc->work_queue_lock);
+		COND_RELEASE(ep->requires_lock, &vc->work_queue_lock);
 
 		if (req) {
 			ret = req->work_fn(req);
@@ -1930,10 +1945,10 @@ static int __gnix_vc_push_work_reqs(struct gnix_vc *vc)
 			 * back on the end of the list and return
 			 * -FI_EAGAIN */
 
-			COND_ACQUIRE(vc->ep->requires_lock,
+			COND_ACQUIRE(ep->requires_lock,
 					&vc->work_queue_lock);
 			dlist_insert_tail(&req->dlist, &vc->work_queue);
-			COND_RELEASE(vc->ep->requires_lock,
+			COND_RELEASE(ep->requires_lock,
 					&vc->work_queue_lock);
 
 			/* __gnix_vc_work_schedule() must come after the
@@ -2025,31 +2040,32 @@ int _gnix_vc_queue_tx_req(struct gnix_fab_req *req)
 {
 	int rc = FI_SUCCESS, queue_tx = 0;
 	struct gnix_vc *vc = req->vc;
-	struct gnix_fid_ep *ep = req->gnix_ep;
+	struct gnix_fid_ep *req_ep = req->gnix_ep;
+	struct gnix_fid_ep *vc_ep = vc->ep;
 	struct gnix_fab_req *more_req;
 	int connected, injecting;
 	struct slist_entry *sle;
 
 	/* Check if there is an outstanding fi_more chain to initiate */
-	if ((!(req->flags & FI_MORE)) && (!(slist_empty(&ep->more_write)) ||
-		!(slist_empty(&ep->more_read)))) {
-		if (!slist_empty(&ep->more_write)) {
-			sle = ep->more_write.head;
+	if ((!(req->flags & FI_MORE)) && (!(slist_empty(&req_ep->more_write)) ||
+		!(slist_empty(&req_ep->more_read)))) {
+		if (!slist_empty(&req_ep->more_write)) {
+			sle = req_ep->more_write.head;
 			more_req = container_of(sle, struct gnix_fab_req,
 						rma.sle);
 			GNIX_DEBUG(FI_LOG_EP_DATA, "FI_MORE: got fab_request "
 					"from more_write. Queuing Request\n");
 			_gnix_vc_queue_tx_req(more_req);
-			slist_init(&ep->more_write);
+			slist_init(&req_ep->more_write);
 		}
-		if (!slist_empty(&ep->more_read)) {
-			sle = ep->more_read.head;
+		if (!slist_empty(&req_ep->more_read)) {
+			sle = req_ep->more_read.head;
 			more_req = container_of(sle, struct gnix_fab_req,
 						rma.sle);
 			GNIX_DEBUG(FI_LOG_EP_DATA, "FI_MORE: got fab_request "
 					"from more_read. Queuing Request\n");
 			_gnix_vc_queue_tx_req(more_req);
-			slist_init(&ep->more_read);
+			slist_init(&req_ep->more_read);
 		}
 	}
 
@@ -2065,7 +2081,7 @@ int _gnix_vc_queue_tx_req(struct gnix_fab_req *req)
 	connected = !__gnix_vc_connected(vc); /* 0 on success */
 	injecting = (req->flags & FI_INJECT) ? 1 : 0;
 
-	COND_ACQUIRE(vc->ep->requires_lock, &vc->tx_queue_lock);
+	COND_ACQUIRE(vc_ep->requires_lock, &vc->tx_queue_lock);
 	if ((req->flags & FI_FENCE) && atomic_get(&vc->outstanding_tx_reqs)) {
 		/* Fence request must be queued until all outstanding TX
 		 * requests are completed.  Subsequent requests will be queued
@@ -2107,9 +2123,9 @@ int _gnix_vc_queue_tx_req(struct gnix_fab_req *req)
 
 	if (unlikely(!connected)) {
 		if (injecting &&
-		    (vc->ep->domain->control_progress == FI_PROGRESS_AUTO)) {
+		    (vc_ep->domain->control_progress == FI_PROGRESS_AUTO)) {
 			while ((vc->conn_state != GNIX_VC_CONNECTED)) {
-				rc = _gnix_cm_nic_progress(vc->ep->cm_nic);
+				rc = _gnix_cm_nic_progress(vc_ep->cm_nic);
 				if (rc != FI_SUCCESS) {
 					GNIX_WARN(FI_LOG_EP_CTRL,
 						"_gnix_cm_nic_progress returned %s\n",
@@ -2128,7 +2144,7 @@ int _gnix_vc_queue_tx_req(struct gnix_fab_req *req)
 		_gnix_vc_tx_schedule(vc);
 	}
 
-	COND_RELEASE(vc->ep->requires_lock, &vc->tx_queue_lock);
+	COND_RELEASE(vc_ep->requires_lock, &vc->tx_queue_lock);
 
 	/*
 	 * if injecting and queuing, push the tx queue for this vc
@@ -2151,6 +2167,7 @@ static int __gnix_vc_push_tx_reqs(struct gnix_vc *vc)
 {
 	int ret, fi_rc = FI_SUCCESS;
 	struct gnix_fab_req *req;
+	struct gnix_fid_ep *ep = vc->ep;
 
 	ret = __gnix_vc_connected(vc); /* 0 on success */
 	if (ret) {
@@ -2160,7 +2177,7 @@ static int __gnix_vc_push_tx_reqs(struct gnix_vc *vc)
 		return -FI_EAGAIN;
 	}
 
-	COND_ACQUIRE(vc->ep->requires_lock, &vc->tx_queue_lock);
+	COND_ACQUIRE(ep->requires_lock, &vc->tx_queue_lock);
 	req = dlist_first_entry(&vc->tx_queue, struct gnix_fab_req, dlist);
 	while (req) {
 		if ((req->flags & FI_FENCE) &&
@@ -2220,7 +2237,7 @@ static int __gnix_vc_push_tx_reqs(struct gnix_vc *vc)
 		/* Return success if the queue is emptied. */
 	}
 
-	COND_RELEASE(vc->ep->requires_lock, &vc->tx_queue_lock);
+	COND_RELEASE(ep->requires_lock, &vc->tx_queue_lock);
 
 	return fi_rc;
 }
@@ -2325,13 +2342,14 @@ int _gnix_vc_ep_get_vc(struct gnix_fid_ep *ep, fi_addr_t dest_addr,
 fi_addr_t _gnix_vc_peer_fi_addr(struct gnix_vc *vc)
 {
 	int rc;
+	struct gnix_fid_ep *ep = vc->ep;
 
 	/* If FI_SOURCE capability was requested, do a reverse lookup of a VC's
 	 * FI address once.  Skip translation on connected EPs (no AV). */
-	if (vc->ep->caps & FI_SOURCE &&
-	    vc->ep->av &&
+	if (ep->caps & FI_SOURCE &&
+	    ep->av &&
 	    vc->peer_fi_addr == FI_ADDR_NOTAVAIL) {
-		rc = _gnix_av_reverse_lookup(vc->ep->av,
+		rc = _gnix_av_reverse_lookup(ep->av,
 					     vc->peer_addr,
 					     &vc->peer_fi_addr);
 		if (rc != FI_SUCCESS)
