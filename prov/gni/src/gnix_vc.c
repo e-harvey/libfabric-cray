@@ -273,7 +273,10 @@ static int __gnix_vc_get_vc_by_fi_addr(struct gnix_fid_ep *ep, fi_addr_t dest_ad
 	}
 
 	/* Initiate new VC connection. */
-	ret = _gnix_vc_connect(vc);
+	if (!((vc->conn_state == GNIX_VC_CONNECTING) ||
+		(vc->conn_state == GNIX_VC_CONNECTED))) {
+		ret = _gnix_vc_connect(vc);
+	}
 	if (ret != FI_SUCCESS) {
 		GNIX_WARN(FI_LOG_EP_DATA,
 			  "_gnix_vc_connect returned %s\n",
@@ -692,7 +695,7 @@ static int __gnix_vc_connect_to_self(struct gnix_vc *vc)
 err_mbox_init:
 	_gnix_mbox_free(vc->smsg_mbox);
 	vc->smsg_mbox = NULL;
-	
+
 	return ret;
 }
 
@@ -1652,16 +1655,6 @@ int _gnix_vc_connect(struct gnix_vc *vc)
 
 	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
 
-	/*
-	 * can happen that we are already connecting, or
-	 * are connected
-	 */
-
-	if ((vc->conn_state == GNIX_VC_CONNECTING) ||
-		(vc->conn_state == GNIX_VC_CONNECTED)) {
-		return FI_SUCCESS;
-	}
-
 	ep = vc->ep;
 	if (ep == NULL)
 		return -FI_EINVAL;
@@ -1876,10 +1869,6 @@ static int __gnix_vc_work_schedule(struct gnix_vc *vc)
 {
 	struct gnix_nic *nic = vc->ep->nic;
 
-	/* Don't bother scheduling if there's no work to do. */
-	if (dlist_empty(&vc->work_queue))
-		return FI_SUCCESS;
-
 	if (!_gnix_test_and_set_bit(&vc->flags, GNIX_VC_FLAG_WORK_SCHEDULED)) {
 		COND_ACQUIRE(nic->requires_lock, &nic->work_vc_lock);
 		dlist_insert_tail(&vc->work_list, &nic->work_vcs);
@@ -1897,6 +1886,7 @@ int _gnix_vc_queue_work_req(struct gnix_fab_req *req)
 
 	COND_ACQUIRE(vc->ep->requires_lock, &vc->work_queue_lock);
 	dlist_insert_tail(&req->dlist, &vc->work_queue);
+	/* Don't need to check for an empty work_queue here */
 	__gnix_vc_work_schedule(vc);
 	COND_RELEASE(vc->ep->requires_lock, &vc->work_queue_lock);
 
@@ -1936,9 +1926,13 @@ static int __gnix_vc_push_work_reqs(struct gnix_vc *vc)
 			COND_RELEASE(vc->ep->requires_lock,
 					&vc->work_queue_lock);
 
-			/* __gnix_vc_work_schedule() must come after the
-			 * request is inserted into the VC's work_queue. */
-			__gnix_vc_work_schedule(vc);
+			/*
+			 * __gnix_vc_work_schedule() must come after the
+			 * request is inserted into the VC's work_queue.
+			 */
+			/* Don't bother scheduling if there's no work to do. */
+			if (!dlist_empty(&vc->work_queue))
+				__gnix_vc_work_schedule(vc);
 
 			fi_rc = -FI_EAGAIN;
 
@@ -2282,7 +2276,9 @@ int _gnix_vc_schedule(struct gnix_vc *vc)
 	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
 
 	_gnix_vc_rx_schedule(vc);
-	__gnix_vc_work_schedule(vc);
+	/* Don't bother scheduling if there's no work to do. */
+	if (!dlist_empty(&vc->work_queue))
+		__gnix_vc_work_schedule(vc);
 	_gnix_vc_tx_schedule(vc);
 
 	return FI_SUCCESS;

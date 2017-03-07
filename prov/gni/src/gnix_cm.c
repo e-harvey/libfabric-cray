@@ -257,11 +257,6 @@ int _gnix_ep_progress(struct gnix_fid_ep *ep)
 	int ret, bytes_read, errno_keep;
 	struct gnix_pep_sock_connresp resp;
 
-	/* No lock, fast exit. */
-	if (ep->conn_state != GNIX_EP_CONNECTING) {
-		return FI_SUCCESS;
-	}
-
 	COND_ACQUIRE(ep->requires_lock, &ep->vc_lock);
 
 	if (ep->conn_state != GNIX_EP_CONNECTING) {

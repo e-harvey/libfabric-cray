@@ -343,7 +343,14 @@ int _gnix_eq_progress(struct gnix_fid_eq *eq)
 		case FI_CLASS_EP:
 			ep = container_of(pobj->obj_fid, struct gnix_fid_ep,
 					  ep_fid.fid);
-			rc = _gnix_ep_progress(ep);
+
+			/* No lock, fast exit. */
+			if (ep->conn_state != GNIX_EP_CONNECTING) {
+				rc = FI_SUCCESS;
+			} else {
+				rc = _gnix_ep_progress(ep);
+			}
+
 			if (rc) {
 				GNIX_WARN(FI_LOG_EP_CTRL,
 					  "_gnix_ep_progress failed: %d\n",

@@ -479,7 +479,8 @@ static int __gnix_rndzv_req_send_fin(void *arg)
 			&txd->rndzv_fin_hdr, sizeof(txd->rndzv_fin_hdr),
 			NULL, 0, txd->id, GNIX_SMSG_T_RNDZV_FIN);
 	if ((status == GNI_RC_SUCCESS) &&
-		(ep->domain->data_progress == FI_PROGRESS_AUTO))
+		(ep->domain->data_progress == FI_PROGRESS_AUTO) &&
+		(req->vc->conn_state == GNIX_VC_CONNECTED))
 		_gnix_rma_post_irq(req->vc);
 	COND_RELEASE(nic->requires_lock, &nic->lock);
 
@@ -2255,7 +2256,6 @@ smsg_callback_fn_t gnix_ep_smsg_callbacks[] = {
 
 static int __gnix_peek_request(struct gnix_fab_req *req)
 {
-	struct gnix_fid_cq *recv_cq = req->gnix_ep->recv_cq;
 	int rendezvous = !!(req->msg.send_flags & GNIX_MSG_RENDEZVOUS);
 	int ret, send_idx, recv_idx, copy_len;
 	uint64_t send_ptr, recv_ptr, send_len, recv_len;
@@ -2264,14 +2264,12 @@ static int __gnix_peek_request(struct gnix_fab_req *req)
 	 * here.  If no CQ, no data is to be returned.  Just inform the user
 	 * that a message is present. */
 	GNIX_INFO(FI_LOG_EP_DATA, "peeking req=%p\n", req);
-	if (!recv_cq)
-		return FI_SUCCESS;
 
 	/* Rendezvous messages on the unexpected queue won't have data.
 	 * Additionally, if the CQ format doesn't support passing a buffer
 	 * location and length, then data will not be copied. */
 	if (!rendezvous && req->msg.recv_info[0].recv_addr &&
-	    !INVALID_PEEK_FORMAT(recv_cq->attr.format)) {
+	    !INVALID_PEEK_FORMAT(req->gnix_ep->recv_cq->attr.format)) {
 		send_len = req->msg.send_info[0].send_len;
 		send_ptr = req->msg.send_info[0].send_addr;
 		recv_len = req->msg.recv_info[0].recv_len;
@@ -2367,24 +2365,21 @@ static int __gnix_msg_addr_lookup(struct gnix_fid_ep *ep, uint64_t src_addr,
 	struct gnix_av_addr_entry av_entry;
 
 	/* Translate source address. */
-	if (GNIX_EP_RDM_DGM(ep->type)) {
-		if ((ep->caps & FI_DIRECTED_RECV) &&
-		    (src_addr != FI_ADDR_UNSPEC)) {
-			av = ep->av;
-			assert(av != NULL);
-			ret = _gnix_av_lookup(av, src_addr, &av_entry);
-			if (ret != FI_SUCCESS) {
-				GNIX_WARN(FI_LOG_AV,
-					  "_gnix_av_lookup returned %d\n",
-					  ret);
-				return ret;
-			}
-			*gnix_addr = av_entry.gnix_addr;
-		} else {
-			*(uint64_t *)gnix_addr = FI_ADDR_UNSPEC;
+	if ((ep->caps & FI_DIRECTED_RECV) &&
+	    (src_addr != FI_ADDR_UNSPEC)) {
+		av = ep->av;
+		assert(av != NULL);
+		ret = _gnix_av_lookup(av, src_addr, &av_entry);
+		if (ret != FI_SUCCESS) {
+			GNIX_WARN(FI_LOG_AV,
+				  "_gnix_av_lookup returned %d\n",
+				  ret);
+			return ret;
 		}
+		*gnix_addr = av_entry.gnix_addr;
+	} else {
+		*(uint64_t *)gnix_addr = FI_ADDR_UNSPEC;
 	}
-	/* NOP for MSG EPs. */
 
 	return FI_SUCCESS;
 }
@@ -2422,7 +2417,10 @@ ssize_t _gnix_recv(struct gnix_fid_ep *ep, uint64_t buf, size_t len,
 
 	match_flags = flags & (FI_CLAIM | FI_DISCARD | FI_PEEK);
 
-	ret = __gnix_msg_addr_lookup(ep, src_addr, &gnix_addr);
+	if (GNIX_EP_RDM_DGM(ep->type)) {
+		ret = __gnix_msg_addr_lookup(ep, src_addr, &gnix_addr);
+	} /* noop for MSG EPs */
+
 	if (ret != FI_SUCCESS)
 		return ret;
 
@@ -2476,7 +2474,8 @@ retry_match:
 			ret = __gnix_discard_request(req);
 			goto pdc_exit;
 		} else if (match_flags & FI_PEEK) {
-			ret = __gnix_peek_request(req);
+			if (req->gnix_ep->recv_cq)
+				ret = __gnix_peek_request(req);
 			goto pdc_exit;
 		}
 
@@ -2805,7 +2804,8 @@ static int _gnix_send_req(void *arg)
 	 */
 	if ((status == GNI_RC_SUCCESS) &&
 		(tag == GNIX_SMSG_T_RNDZV_START ||
-		 tag == GNIX_SMSG_T_RNDZV_IOV_START))
+		 tag == GNIX_SMSG_T_RNDZV_IOV_START) &&
+		(req->vc->conn_state == GNIX_VC_CONNECTED))
 		_gnix_rma_post_irq(req->vc);
 
 	COND_RELEASE(nic->requires_lock, &nic->lock);
@@ -2994,7 +2994,10 @@ ssize_t _gnix_recvv(struct gnix_fid_ep *ep, const struct iovec *iov,
 	 * If the gni addr doesn't exist the addr is FI_ADDR_UNSPEC,
 	 * meaning this remote node wants to receive from all senders?
 	 */
-	ret = __gnix_msg_addr_lookup(ep, src_addr, &gnix_addr);
+	if (GNIX_EP_RDM_DGM(ep->type)) {
+		ret = __gnix_msg_addr_lookup(ep, src_addr, &gnix_addr);
+	} /* noop for MSG EPs */
+
 	if (ret != FI_SUCCESS)
 		return ret;
 
@@ -3070,7 +3073,8 @@ ssize_t _gnix_recvv(struct gnix_fid_ep *ep, const struct iovec *iov,
 			ret = __gnix_discard_request(req);
 			goto pdc_exit;
 		} else if (match_flags & FI_PEEK) {
-			ret = __gnix_peek_request(req);
+			if (req->gnix_ep->recv_cq)
+				ret = __gnix_peek_request(req);
 			goto pdc_exit;
 		}
 

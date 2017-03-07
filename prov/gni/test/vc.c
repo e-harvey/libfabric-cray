@@ -535,7 +535,10 @@ Test(vc_management_auto, vc_connect)
 	cr_assert_eq(ret, FI_SUCCESS);
 	vc_conn->modes |= GNIX_VC_MODE_IN_HT;
 
-	ret = _gnix_vc_connect(vc_conn);
+	if (!((vc_conn->conn_state == GNIX_VC_CONNECTING) ||
+	      (vc_conn->conn_state == GNIX_VC_CONNECTED))) {
+		ret = _gnix_vc_connect(vc_conn);
+	}
 	cr_assert_eq(ret, FI_SUCCESS);
 
 	/*
@@ -593,10 +596,16 @@ Test(vc_management_auto, vc_connect2)
 
 	vc_conn1->modes |= GNIX_VC_MODE_IN_HT;
 
-	ret = _gnix_vc_connect(vc_conn0);
+	if (!((vc_conn0->conn_state == GNIX_VC_CONNECTING) ||
+	      (vc_conn0->conn_state == GNIX_VC_CONNECTED))) {
+		ret = _gnix_vc_connect(vc_conn0);
+	}
 	cr_assert_eq(ret, FI_SUCCESS);
 
-	ret = _gnix_vc_connect(vc_conn1);
+	if (!((vc_conn1->conn_state == GNIX_VC_CONNECTING) ||
+	      (vc_conn1->conn_state == GNIX_VC_CONNECTED))) {
+		ret = _gnix_vc_connect(vc_conn1);
+	}
 	cr_assert_eq(ret, FI_SUCCESS);
 
 	/*

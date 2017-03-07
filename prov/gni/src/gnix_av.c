@@ -161,10 +161,6 @@ static int table_insert(struct gnix_fid_av *av_priv, const void *addr,
 	size_t i;
 	int *entry_err = context;
 
-	if (gnix_check_capacity(av_priv, count)) {
-		return -FI_ENOMEM;
-	}
-
 	assert(av_priv->table);
 	for (index = av_priv->count, i = 0; i < count; index++, i++) {
 		temp = &((struct gnix_ep_name *)addr)[i];
@@ -242,9 +238,6 @@ static int table_lookup(struct gnix_fid_av *av_priv, fi_addr_t fi_addr,
 	struct gnix_av_addr_entry *entry = NULL;
 
 	index = (size_t)fi_addr;
-	if (index >= av_priv->count)
-		return -FI_EINVAL;
-
 	assert(av_priv->table);
 	entry = &av_priv->table[index];
 
@@ -309,9 +302,6 @@ static int map_insert(struct gnix_fid_av *av_priv, const void *addr,
 	int *entry_err = context;
 
 	assert(av_priv->map_ht != NULL);
-
-	if (count == 0)
-		return 0;
 
 	blk = calloc(1, sizeof(struct gnix_av_block));
 	if (blk == NULL)
@@ -488,13 +478,11 @@ int _gnix_av_lookup(struct gnix_fid_av *gnix_av, fi_addr_t fi_addr,
 
 	GNIX_TRACE(FI_LOG_AV, "\n");
 
-	if (!gnix_av) {
-		ret = -FI_EINVAL;
-		goto err;
-	}
-
 	switch (gnix_av->type) {
 	case FI_AV_TABLE:
+		if ((size_t) fi_addr >= gnix_av->count)
+			return -FI_EINVAL;
+
 		ret = table_lookup(gnix_av, addr, entry_ptr);
 		break;
 	case FI_AV_MAP:
@@ -615,8 +603,16 @@ DIRECT_FN STATIC int gnix_av_insert(struct fid_av *av, const void *addr,
 		return -FI_EINVAL;
 	}
 
+	if (count == 0)
+		return 0;
+
 	switch (av_priv->type) {
 	case FI_AV_TABLE:
+
+		if (gnix_check_capacity(av_priv, count)) {
+			return -FI_ENOMEM;
+		}
+
 		ret =
 		    table_insert(av_priv, addr, count, fi_addr, flags, context);
 		break;

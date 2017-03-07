@@ -657,9 +657,6 @@ int _gnix_rma_post_irq(struct gnix_vc *vc)
 	gni_return_t status;
 
 #if 1
-	if (vc->conn_state != GNIX_VC_CONNECTED)
-		return -FI_EINVAL;
-
 	ep = vc->ep;
 	assert(ep != NULL);
 
