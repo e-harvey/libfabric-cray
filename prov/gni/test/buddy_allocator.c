@@ -37,14 +37,14 @@
 #include "gnix_rdma_headers.h"
 #include <time.h>
 
-#define LEN (1024 * 1024)	/* buddy_handle->len */
-#define MAX_LEN (LEN / 2)	/* buddy_handle->max */
-#define MIN_LEN MIN_BLOCK_SIZE
+#define LEN (1024 * 1024)	    /* buddy_handle->len */
+#define MAX_LEN (LEN / 2)	    /* buddy_handle->max */
+#define MIN_LEN SMALLEST_BLOCK_SIZE /* buddy_handle->min */
 
-long *buf = NULL;		/* buddy_handle->base */
-gnix_buddy_alloc_handle_t *buddy_handle;
+static long *buf;		    /* buddy_handle->base */
+static gnix_buddy_alloc_handle_t *buddy_handle;
 
-struct ptrs_t {
+static struct ptrs_t {
 	void *ptr;		/* ptrs alloc'd by buddy_alloc */
 	uint32_t size;		/* size of the ptr */
 } *ptrs;
@@ -53,13 +53,14 @@ void buddy_allocator_setup(void)
 {
 	int ret;
 
-	ptrs = calloc(LEN / MIN_LEN, sizeof(struct ptrs_t));
+	ptrs = calloc(LEN / buddy_handle->min, sizeof(struct ptrs_t));
 	cr_assert(ptrs, "buddy_allocator_setup");
 
 	buf = calloc(LEN, sizeof(long));
 	cr_assert(buf, "buddy_allocator_setup");
 
-	ret = _gnix_buddy_allocator_create(buf, LEN, MAX_LEN, &buddy_handle);
+	ret = _gnix_buddy_allocator_create(buf, LEN, MAX_LEN, MIN_LEN,
+					   &buddy_handle);
 	cr_assert(!ret, "_gnix_buddy_allocator_create");
 }
 
@@ -79,19 +80,25 @@ void buddy_allocator_setup_error(void)
 {
 	int ret;
 
-	ret = _gnix_buddy_allocator_create(NULL, LEN, MAX_LEN, &buddy_handle);
+	ret = _gnix_buddy_allocator_create(NULL, LEN, MAX_LEN, MIN_LEN,
+							       &buddy_handle);
 	cr_assert_eq(ret, -FI_EINVAL);
 
-	ret = _gnix_buddy_allocator_create(buf, 0, MAX_LEN, &buddy_handle);
+	ret = _gnix_buddy_allocator_create(buf, 0, MAX_LEN,
+					   MIN_LEN, &buddy_handle);
 	cr_assert_eq(ret, -FI_EINVAL);
 
-	ret = _gnix_buddy_allocator_create(buf, LEN, LEN + 1, &buddy_handle);
+	ret = _gnix_buddy_allocator_create(buf, LEN, LEN + 1, MIN_LEN,
+							      &buddy_handle);
 	cr_assert_eq(ret, -FI_EINVAL);
 
-	ret = _gnix_buddy_allocator_create(buf, LEN, 0, &buddy_handle);
+	ret = _gnix_buddy_allocator_create(buf, LEN, 0, MIN_LEN, &buddy_handle);
 	cr_assert_eq(ret, -FI_EINVAL);
 
-	ret = _gnix_buddy_allocator_create(buf, LEN, MAX_LEN, NULL);
+	ret = _gnix_buddy_allocator_create(buf, LEN, MAX_LEN, 1, NULL);
+	cr_assert_eq(ret, -FI_EINVAL);
+
+	ret = _gnix_buddy_allocator_create(buf, LEN, MAX_LEN, MIN_LEN, NULL);
 	cr_assert_eq(ret, -FI_EINVAL);
 }
 
@@ -150,9 +157,9 @@ TestSuite(buddy_allocator, .init = buddy_allocator_setup,
 /* Sequential alloc and frees */
 Test(buddy_allocator, sequential_alloc_free)
 {
-	uint32_t i = MIN_LEN;
+	uint32_t i;
 
-	for (i = MIN_LEN; i <= MAX_LEN; i *= 2) {
+	for (i = buddy_handle->min; i <= MAX_LEN; i *= 2) {
 		do_alloc(i);
 		do_free(i);
 	}
@@ -165,19 +172,19 @@ Test(buddy_allocator, random_alloc_free)
 
 	srand((unsigned) time(NULL));
 
-	for (j = MIN_LEN; j <= MAX_LEN; j *= 2) {
+	for (j = buddy_handle->min; j <= MAX_LEN; j *= 2) {
 		do {
 			ret = rand() % 100;
 
 			if (ret <= 49) {
 				/* ~50% chance to alloc min size blocks*/
-				ptrs[i].size = MIN_BLOCK_SIZE;
+				ptrs[i].size = buddy_handle->min;
 			} else if (ret >= 50 &&
 				   ret <= 87) {
 				/* ~37% chance to alloc blocks of size
-				 * [MIN_BLOCK_SIZE * 2, MAX_BLOCK_SIZE / 2]
+				 * [buddy_handle->min * 2, MAX_BLOCK_SIZE / 2]
 				 */
-				ptrs[i].size = OFFSET(MIN_BLOCK_SIZE,
+				ptrs[i].size = OFFSET(buddy_handle->min,
 						      (rand() %
 						       (buddy_handle->nlists -
 							1)) + 1);

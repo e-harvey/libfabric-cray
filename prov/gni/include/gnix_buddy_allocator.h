@@ -41,7 +41,8 @@
 #include "gnix_util.h"
 #include "gnix.h"
 
-#define MIN_BLOCK_SIZE 256
+/* Each free block must be able to hold two 8 byte pointer for the doubly LL */
+#define SMALLEST_BLOCK_SIZE 16
 
 /* The following table was taken from:
  * http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
@@ -111,6 +112,7 @@ static inline void *__gnix_buddy_address(void *x, size_t len, void *base)
  * @var len		The length of the buffer the buddy allocator is
  * managing.
  * @var max		The largest chunk of memory that can be allocated.
+ * @var min		The smallest chunk of memory that can be allocated.
  *
  * @var nlists		The number of free lists.
  * @var lists		The array of free lists ordered from smallest block
@@ -126,6 +128,7 @@ typedef struct gnix_buddy_alloc_handle {
 	void *base;
 	uint32_t len;
 	uint32_t max;
+	uint32_t min;
 
 	uint32_t nlists;
 	struct dlist_entry *lists;
@@ -147,6 +150,9 @@ typedef struct gnix_buddy_alloc_handle {
  * @param[in] max		Maximum amount of memory that can be allocated
  * by a single call to _gnix_buddy_alloc (power 2).
  *
+ * @param[in] min		Minimum amount of memory that can be allocated
+ * by a single call to _gnix_buddy_alloc (power 2).
+ *
  * @param[in/out] alloc_handle	Handle to be used for when allocating/freeing
  * memory managed by the buddy allocator.
  *
@@ -158,6 +164,7 @@ typedef struct gnix_buddy_alloc_handle {
  * buddy allocator.
  */
 int _gnix_buddy_allocator_create(void *base, uint32_t len, uint32_t max,
+				 uint32_t min,
 				 gnix_buddy_alloc_handle_t **alloc_handle);
 
 /**
