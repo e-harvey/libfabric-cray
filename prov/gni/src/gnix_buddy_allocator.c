@@ -121,8 +121,6 @@
 
 #include "gnix_buddy_allocator.h"
 
-static
-
 static inline int __gnix_buddy_create_lists(gnix_buddy_alloc_handle_t
 					    *alloc_handle)
 {
@@ -256,13 +254,18 @@ int _gnix_buddy_allocator_create(void *base, uint32_t len, uint32_t max,
 	/* Ensure parameters are valid */
 	if (unlikely(
 		!base || !len || !max || !min || min < SMALLEST_BLOCK_SIZE ||
-		max > len || !alloc_handle || IS_NOT_POW_TWO(max) ||
-		IS_NOT_POW_TWO(min) || (len % max) || !(len / min * 2))) {
+			max > len || !alloc_handle || IS_NOT_POW_TWO(max) || ||
+			(len % max) || !(len / min * 2))) {
 
 		GNIX_WARN(FI_LOG_EP_CTRL,
 			  "Invalid parameter to _gnix_buddy_allocator_create."
 			  "\n");
 		return -FI_EINVAL;
+	}
+
+	/* Round min up to the next power of two if needed */
+	if (IS_NOT_POW_TWO(min)) {
+		min = (min << 1) & ~min;
 	}
 
 	*alloc_handle = calloc(1, sizeof(gnix_buddy_alloc_handle_t));

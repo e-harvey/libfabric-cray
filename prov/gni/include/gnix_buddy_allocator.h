@@ -151,7 +151,7 @@ typedef struct gnix_buddy_alloc_handle {
  * by a single call to _gnix_buddy_alloc (power 2).
  *
  * @param[in] min		Minimum amount of memory that can be allocated
- * by a single call to _gnix_buddy_alloc (power 2).
+ * by a single call to _gnix_buddy_alloc (greater than 0).
  *
  * @param[in/out] alloc_handle	Handle to be used for when allocating/freeing
  * memory managed by the buddy allocator.
