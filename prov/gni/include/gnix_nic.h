@@ -44,6 +44,7 @@
 #include "gnix_bitmap.h"
 #include "gnix_mbox_allocator.h"
 #include "gnix_util.h"
+#include "gnix_buddy_allocator.h"
 
 #define GNIX_DEF_MAX_NICS_PER_PTAG	4
 
@@ -195,9 +196,10 @@ struct gnix_nic {
 	gnix_bitmap_t vc_id_bitmap;
 	uint32_t mem_per_mbox;
 	struct gnix_mbox_alloc_handle *mbox_hndl;
-	/* TODO: gnix_buddy_alloc_handle_t *alloc_handle */
-	struct gnix_mbox_alloc_handle *s_rdma_buf_hndl;
-	struct gnix_mbox_alloc_handle *r_rdma_buf_hndl;
+	gnix_buddy_alloc_handle_t *s_rdma_buf_hndl;
+	gnix_buddy_alloc_handle_t *r_rdma_buf_hndl;
+	struct fid_mr *s_rdma_mr;
+	struct fid_mr *r_rdma_mr;
 	struct gnix_reference ref_cnt;
 	smsg_callback_fn_t const *smsg_callbacks;
 	struct slist err_txds;

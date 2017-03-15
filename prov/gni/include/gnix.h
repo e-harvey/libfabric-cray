@@ -741,6 +741,7 @@ struct gnix_fab_req_msg {
 	size_t                       send_iov_cnt;
 	uint64_t                     send_flags;
 	size_t			     cum_send_len;
+	bool			     send_rdma_buf_on;
 
 	struct recv_info_t {
 		uint64_t	 recv_addr;
@@ -756,6 +757,7 @@ struct gnix_fab_req_msg {
 	size_t			     recv_iov_cnt;
 	uint64_t                     recv_flags; /* protocol, API info */
 	size_t			     cum_recv_len;
+	bool			     recv_rdma_buf_on;
 
 	uint64_t                     tag;
 	uint64_t                     ignore;

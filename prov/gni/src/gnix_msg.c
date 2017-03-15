@@ -2808,6 +2808,8 @@ ssize_t _gnix_send(struct gnix_fid_ep *ep, uint64_t loc_addr, size_t len,
 	int rendezvous;
 	struct fid_mr *auto_mr = NULL;
 	int connected;
+	void *s_rdma_buf = NULL;
+	bool s_rdma_buf_on = false;
 
 	if (!ep->send_cq && !ep->send_cntr) {
 		return -FI_ENOCQ;
@@ -2838,6 +2840,34 @@ ssize_t _gnix_send(struct gnix_fid_ep *ep, uint64_t loc_addr, size_t len,
 	}
 
 	rendezvous = len >= ep->domain->params.msg_rendezvous_thresh;
+
+	if (rendezvous && !mdesc && ep->nic->s_rdma_mr) {
+		/*TODO: free this in POSTED and UNPOSTED and add to recv path*/
+		ret = _gnix_buddy_alloc(ep->nic->s_rdma_buf_hndl, &s_rdma_buf,
+					len);
+		if (ret != FI_SUCCESS) {
+			GNIX_INFO(FI_LOG_EP_DATA, "_gnix_buddy_alloc "
+				"returned: %s", fi_strerror(-ret));
+
+		} else {
+			mdesc = ep->nic->s_rdma_mr;
+			flags |= FI_LOCAL_MR;
+			memcpy(s_rdma_buf, loc_addr, len);
+			loc_addr = (uint64_t) s_rdma_buf;
+			/*
+			 * Here we need to round length up to the next
+			 * multiple of GNI_READ_ALIGN to avoid alignment
+			 * checks. Since the buddy allocator's smallest possible
+			 * block size is already a multiple of GNI_READ_ALIGN,
+			 * or 4, every block that the allocator hands off will
+			 * be a multiple of 4. As a result, rounding the length
+			 * up to the next multiple will never result in
+			 * overstepping the s_rdma_buf buffer bounds.
+			 */
+			GNIX_ROUND_UP_TO_MULT(len, GNI_READ_ALIGN);
+			s_rdma_buf_on = true;
+		}
+	}
 
 	/* need a memory descriptor for large sends */
 	if (rendezvous && !mdesc) {
@@ -2881,6 +2911,7 @@ ssize_t _gnix_send(struct gnix_fid_ep *ep, uint64_t loc_addr, size_t len,
 	req->msg.send_flags = flags;
 	req->msg.send_info[0].send_len = len;
 	req->msg.cum_send_len = len;
+	req->msg.send_rdma_buf_on = s_rdma_buf_on;
 	req->msg.imm = data;
 	req->flags = 0;
 

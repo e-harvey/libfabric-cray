@@ -283,6 +283,14 @@ static inline void _gnix_ref_init(
 	ref->destruct = destruct;
 }
 
+/*
+ * Rounds _x up to the nearest multiple of _mult.
+ *
+ * @param _x    the number to round up.
+ * @param _mult the multiple to round up to.
+ */
+#define GNIX_ROUND_UP_TO_MULT(_x, _mult) ((_x) += ((_x) % (_mult)))
+
 #define __STRINGIFY(expr) #expr
 #define STRINGIFY(expr) __STRINGIFY(expr)
 
@@ -306,7 +314,7 @@ static inline void _gnix_ref_init(
 	__COND_FUNC((cond), (lock), rwlock_unlock)
 #ifdef __GNUC__
 #define __PREFETCH(addr, rw, locality) __builtin_prefetch(addr, rw, locality)
-#else 
+#else
 #define __PREFETCH(addr, rw, locality) ((void *) 0)
 #endif
 

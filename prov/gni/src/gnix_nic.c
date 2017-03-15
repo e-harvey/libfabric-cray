@@ -893,6 +893,8 @@ int gnix_nic_alloc(struct gnix_fid_domain *domain,
 	uint32_t num_corespec_cpus = 0;
 	bool must_alloc_nic = false;
 	bool free_list_inited = false;
+	void *buf;
+	size_t buf_len;
 
 	GNIX_TRACE(FI_LOG_EP_CTRL, "\n");
 
@@ -1180,7 +1182,7 @@ int gnix_nic_alloc(struct gnix_fid_domain *domain,
 		}
 
 		/*
-		 * use the mailbox allocator system to set up an
+		 * use the buddy allocator system to set up an
 		 * pre-pinned RDMA bounce buffers for longer eager
 		 * messages and other cases where zero-copy
 		 * can't be safely used.
@@ -1190,35 +1192,72 @@ int gnix_nic_alloc(struct gnix_fid_domain *domain,
 		 * side.  Both sets of blocks are registered against
 		 * the blocking RX CQ for this nic.
 		 *
-		 * TODO: hardwired constants, uff
-		 * TODO: better to use a buddy allocator or some other
-		 * allocator
 		 */
 
-		ret = _gnix_mbox_allocator_create(nic,
-						  NULL,
-						  GNIX_PAGE_2MB,
-						  65536,
-						  512,
-						  &nic->s_rdma_buf_hndl);
+		/* Setup sender's rdma buf */
+		buf_len = domain->params.msg_rendezvous_thresh * GNI_READ_ALIGN
+			  * 32;
+		ret = posix_memalign(&buf, GNI_READ_ALIGN, buf_len);
 		if (ret != FI_SUCCESS) {
-			GNIX_WARN(FI_LOG_EP_CTRL,
-				  "_gnix_mbox_alloc returned %s\n",
-				  fi_strerror(-ret));
-			goto err1;
+			GNIX_INFO(FI_LOG_EP_CTRL, "posix_memalign returned "
+				"%s\n", strerror(ret));
+		} else {
+			ret = gnix_mr_reg(&domain->domain_fid.fid, buf, buf_len,
+					  FI_READ | FI_WRITE, 0, 0, 0,
+					  &nic->s_rdma_mr, NULL);
+
+			if (ret != FI_SUCCESS) {
+				GNIX_INFO(FI_LOG_EP_CTRL, "gnix_mr_reg "
+					"returned %s\n", fi_strerror(-ret));
+				free(buf);
+			} else {
+				ret = _gnix_buddy_allocator_create(buf, buf_len,
+				domain->params.msg_rendezvous_thresh * 4,
+				domain->params.msg_rendezvous_thresh,
+				&nic->s_rdma_buf_hndl);
+
+				if (ret != FI_SUCCESS) {
+					GNIX_INFO(FI_LOG_EP_CTRL,
+						  "_gnix_buddy_allocator_create"
+							  " returned %s\n",
+						  fi_strerror(-ret));
+					nic->s_rdma_mr = NULL;
+					nic->s_rdma_buf_hndl = NULL;
+					free(buf);
+				}
+			}
 		}
 
-		ret = _gnix_mbox_allocator_create(nic,
-						  NULL,
-						  GNIX_PAGE_2MB,
-						  65536,
-						  512,
-						  &nic->r_rdma_buf_hndl);
+		/* Setup receivers rdma buf */
+		ret = posix_memalign(&buf, GNI_READ_ALIGN, buf_len);
 		if (ret != FI_SUCCESS) {
-			GNIX_WARN(FI_LOG_EP_CTRL,
-				  "_gnix_mbox_alloc returned %s\n",
-				  fi_strerror(-ret));
-			goto err1;
+			GNIX_INFO(FI_LOG_EP_CTRL, "posix_memalign returned "
+				"%s\n", strerror(ret));
+		} else {
+			ret = gnix_mr_reg(&domain->domain_fid.fid, buf, buf_len,
+					  FI_READ | FI_WRITE, 0, 0, 0,
+					  &nic->r_rdma_mr, NULL);
+
+			if (ret != FI_SUCCESS) {
+				GNIX_INFO(FI_LOG_EP_CTRL, "gnix_mr_reg "
+					"returned %s\n", fi_strerror(-ret));
+				free(buf);
+			} else {
+				ret = _gnix_buddy_allocator_create(buf, buf_len,
+				domain->params.msg_rendezvous_thresh * 4,
+				domain->params.msg_rendezvous_thresh,
+				&nic->r_rdma_buf_hndl);
+
+				if (ret != FI_SUCCESS) {
+					GNIX_INFO(FI_LOG_EP_CTRL,
+						  "_gnix_buddy_allocator_create"
+							  " returned %s\n",
+						  fi_strerror(-ret));
+					nic->r_rdma_mr = NULL;
+					nic->r_rdma_buf_hndl = NULL;
+					free(buf);
+				}
+			}
 		}
 
 		ret =  __nic_setup_irq_cq(nic);
