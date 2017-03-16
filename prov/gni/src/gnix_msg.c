@@ -2138,13 +2138,19 @@ static int __gnix_rndzv_fin_cleanup(void *arg)
 
 	GNIX_TRACE(FI_LOG_EP_DATA, "\n");
 
-	for (i = 0; i < req->msg.send_iov_cnt; i++) {
-		GNIX_INFO(FI_LOG_EP_DATA, "freeing auto-reg MR: %p\n",
-			  req->msg.send_md[i]);
+	if (req->msg.send_rdma_buf_on) {
+		_gnix_buddy_free(req->gnix_ep->nic->s_rdma_buf_hndl,
+				 req->msg.send_info[0].send_addr,
+				 req->msg.cum_send_len);
+	} else {
+		for (i = 0; i < req->msg.send_iov_cnt; i++) {
+			GNIX_INFO(FI_LOG_EP_DATA, "freeing auto-reg MR: %p\n",
+				  req->msg.send_md[i]);
 
-		GNIX_DEBUG(FI_LOG_EP_DATA, "req->msg.send_md[%d] ="
-			   " %p\n", i, req->msg.send_md[i]);
-		fi_close(&req->msg.send_md[i]->mr_fid.fid);
+			GNIX_DEBUG(FI_LOG_EP_DATA, "req->msg.send_md[%d] ="
+				" %p\n", i, req->msg.send_md[i]);
+			fi_close(&req->msg.send_md[i]->mr_fid.fid);
+		}
 	}
 
 	_gnix_fr_free(req->gnix_ep, req);
@@ -2662,6 +2668,9 @@ static int _gnix_send_req(void *arg)
 			tdesc->rndzv_start_hdr.len = req->msg.send_info[0].send_len;
 			tdesc->rndzv_start_hdr.req_addr = (uint64_t)req;
 
+			if (req->msg.send_rdma_buf_on)
+				goto skip_send_alignment;
+
 			if (req->msg.send_info[0].send_addr & GNI_READ_ALIGN_MASK) {
 				tdesc->rndzv_start_hdr.head =
 					*(uint32_t *)(req->msg.send_info[0].send_addr &
@@ -2689,6 +2698,7 @@ static int _gnix_send_req(void *arg)
 					  tdesc->rndzv_start_hdr.tail);
 			}
 
+		skip_send_alignment:
 			hdr = &tdesc->rndzv_start_hdr;
 			hdr_len = sizeof(tdesc->rndzv_start_hdr);
 			/* TODO: Unify send&sendv/recv&recvv, so data will be
@@ -2714,7 +2724,8 @@ static int _gnix_send_req(void *arg)
 			 * within the data section of the control message so
 			 * that the remote peer can pull from four byte aligned
 			 * addresses and still transfer all the data. */
-			__gnix_msg_send_alignment(req);
+			if (!req->msg.send_rdma_buf_on)
+				__gnix_msg_send_alignment(req);
 
 			data_len = sizeof(struct send_info_t) * req->msg.send_iov_cnt;
 			data = (void *) req->msg.send_info;
@@ -2842,7 +2853,6 @@ ssize_t _gnix_send(struct gnix_fid_ep *ep, uint64_t loc_addr, size_t len,
 	rendezvous = len >= ep->domain->params.msg_rendezvous_thresh;
 
 	if (rendezvous && !mdesc && ep->nic->s_rdma_mr) {
-		/*TODO: free this in POSTED and UNPOSTED and add to recv path*/
 		ret = _gnix_buddy_alloc(ep->nic->s_rdma_buf_hndl, &s_rdma_buf,
 					len);
 		if (ret != FI_SUCCESS) {
@@ -3259,11 +3269,12 @@ ssize_t _gnix_sendv(struct gnix_fid_ep *ep, const struct iovec *iov,
 {
 	int i, ret = FI_SUCCESS;
 	unsigned long long cum_len = 0;
-	void *tmp = NULL;
+	void *tmp = NULL, *s_rdma_buf = NULL;
 	struct gnix_vc *vc = NULL;
 	struct gnix_fab_req *req = NULL;
 	struct fid_mr *auto_mr;
 	int connected;
+	bool rndzv, s_rdma_buf_on;
 
 	GNIX_DEBUG(FI_LOG_EP_DATA, "iov_count = %lu\n", count);
 
@@ -3312,6 +3323,21 @@ ssize_t _gnix_sendv(struct gnix_fid_ep *ep, const struct iovec *iov,
 	req->msg.send_flags = flags;
 	req->msg.imm = 0;
 
+	rndzv = cum_len >= ep->domain->params.msg_rendezvous_thresh;
+
+	if (rndzv && !mdesc && ep->nic->s_rdma_mr) {
+		ret = _gnix_buddy_alloc(ep->nic->s_rdma_buf_hndl, &s_rdma_buf,
+					cum_len);
+		if (ret != FI_SUCCESS) {
+			GNIX_INFO(FI_LOG_EP_DATA, "_gnix_buddy_alloc "
+				"returned: %s", fi_strerror(-ret));
+
+		} else {
+			mdesc = ep->nic->s_rdma_mr;
+			flags |= FI_LOCAL_MR;
+			s_rdma_buf_on = true;
+		}
+	}
 	/*
 	 * If the cum_len is >= ep->domain->params.msg_rendezvous_thresh
 	 * transfer the iovec entries individually.
@@ -3322,7 +3348,7 @@ ssize_t _gnix_sendv(struct gnix_fid_ep *ep, const struct iovec *iov,
 	 * dom is configured with FmaSharing.
 	 * otherwise use PostRdma.
 	 */
-	if (cum_len >= ep->domain->params.msg_rendezvous_thresh) {
+	if (rndzv) {
 		if (!mdesc) {	/* Register the memory for the user */
 			for (i = 0; i < count; i++) {
 				auto_mr = NULL;
@@ -3373,28 +3399,39 @@ ssize_t _gnix_sendv(struct gnix_fid_ep *ep, const struct iovec *iov,
 
 			req->msg.send_flags |= FI_LOCAL_MR;
 		} else {	/* User registered their memory */
-			for (i = 0; i < count; i++) {
-				if (!mdesc[i]) {
-					GNIX_WARN(FI_LOG_EP_DATA,
-						  "invalid memory reg"
-						  "istration (%p).\n",
-						  mdesc[i]);
-					goto err_mr_reg;
+			if (s_rdma_buf_on) {
+				__gnix_msg_pack_data_from_iov((uint64_t) s_rdma_buf,
+							      cum_len,
+							      iov,
+							      count);
+				req->msg.send_info[0].send_addr = (uint64_t) s_rdma_buf;
+
+				GNIX_ROUND_UP_TO_MULT(cum_len, GNI_READ_ALIGN);
+				req->msg.send_info[0].send_len = cum_len;
+			} else {
+				for (i = 0; i < count; i++) {
+					if (!mdesc[i]) {
+						GNIX_WARN(FI_LOG_EP_DATA,
+							  "invalid memory reg"
+								  "istration (%p).\n",
+							  mdesc[i]);
+						goto err_mr_reg;
+					}
+
+					req->msg.send_md[i] =
+						container_of(mdesc[i],
+							     struct gnix_fid_mem_desc,
+							     mr_fid);
+
+					req->msg.send_info[i].send_addr = (uint64_t) iov[i].iov_base;
+					req->msg.send_info[i].send_len = iov[i].iov_len;
+					req->msg.send_info[i].mem_hndl =
+						req->msg.send_md[i]->mem_hndl;
 				}
-
-				req->msg.send_md[i] =
-					container_of(mdesc[i],
-						     struct gnix_fid_mem_desc,
-						     mr_fid);
-
-				req->msg.send_info[i].send_addr = (uint64_t) iov[i].iov_base;
-				req->msg.send_info[i].send_len = iov[i].iov_len;
-				req->msg.send_info[i].mem_hndl =
-					req->msg.send_md[i]->mem_hndl;
 			}
 		}
 
-		req->msg.send_iov_cnt = count;
+		req->msg.send_iov_cnt = s_rdma_buf_on ? 1 : count;
 		req->msg.send_flags |= GNIX_MSG_RENDEZVOUS;
 	} else {
 		/*
